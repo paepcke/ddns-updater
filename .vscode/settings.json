@@ -45,7 +45,16 @@
     "outline.problems.badges": false,
     "outline.problems.colors": false,
     "outline.showInterfaces": false,
-    "outline.showTypeParameters": false
+    "outline.showTypeParameters": false,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./src",
+        "-p",
+        "test_*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true
 }
 
 

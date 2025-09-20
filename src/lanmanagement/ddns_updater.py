@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-19 19:30:50
+# @Last Modified time: 2025-09-20 14:57:06
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -14,18 +14,21 @@ import argparse
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import time
 from pathlib import Path
 import re
 import shutil
 import subprocess, sys
-from datetime import datetime
 
 class DDNSUpdater:
 
-	DDNS_PASSWORD_FILE  = str(Path(f"{os.getenv('HOME')} / '.ssh/ddns_password"))
-	
+	# Pwd to DDNS server: $HOME/.ssh/ddns_password:
+	DDNS_PASSWORD_FILE = str(Path(os.getenv('HOME')) / '.ssh/ddns_password')
+
+	# Logs rotating among five files in current-dir/logs:	
 	DDNS_LOG_FILE      = str(Path(__file__).parent / 'logs/ddns.log')
 	MAX_LOGFILE_SIZE   = 100 * 1024  # 100 KB
+	# Number of log files to keep; rotation among them:
 	BACKUP_COUNT 	   = 5
 	
     # Server from which to learn one's own IP:
@@ -75,7 +78,7 @@ class DDNSUpdater:
 		# The OS level 'curl' program:
 		self.curl_binary = shutil.which('curl')
 		if self.curl_binary is None:
-			self.logger("Could not find needed command 'curl'")
+			self.logger.error("Could not find needed command 'curl'")
 			sys.exit(1)
 
 		if period == 0:
@@ -87,7 +90,7 @@ class DDNSUpdater:
 			# Not a good solution; use a scheduler instead
 			# On Linux/MacOS use cron, and set period to 0
 			self.report_own_ip()
-			os.sleep(period * 60)
+			time.sleep(period * 60)
 
 	#------------------------------------
 	# report_own_ip
@@ -125,7 +128,7 @@ class DDNSUpdater:
 			self.logger.error(msg)
 		else:
 			# Log the success:
-			f"Reported updated {cur_registered_ip} => {cur_own_ip}"
+			msg = f"Reported updated {cur_registered_ip} => {cur_own_ip}"
 			self.logger.info(msg)
 		
 	#------------------------------------
@@ -355,3 +358,4 @@ if __name__ == '__main__':
 	
 	
 	DDNSUpdater(args.host, args.domain, args.period)
+	
