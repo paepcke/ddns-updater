@@ -1,0 +1,73 @@
+// Place your key bindings in this file to override the defaults
+[
+    {
+        "key": "ctrl+space",
+        "command": "emacs-mcx.setMarkCommand",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+space",
+        "command": "-emacs-mcx.setMarkCommand",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+space",
+        "command": "-toggleSuggestionDetails",
+        "when": "suggestWidgetHasFocusedSuggestion && suggestWidgetVisible && textInputFocus"
+    },
+    {
+        "key": "ctrl+space",
+        "command": "-editor.action.triggerSuggest",
+        "when": "editorHasCompletionItemProvider && textInputFocus && !editorReadonly && !suggestWidgetVisible"
+    },
+    {
+        "key": "ctrl+space",
+        "command": "-focusSuggestion",
+        "when": "suggestWidgetVisible && textInputFocus && !suggestWidgetHasFocusedSuggestion"
+    },
+    {
+        "key": "ctrl+x l",
+        "command": "workbench.action.gotoLine",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+x x",
+        "command": "emacs-mcx.startRegisterCopyCommand",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+x g",
+        "command": "emacs-mcx.startRegisterInsertCommand",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+c ctrl+f",
+        "command": "workbench.action.debug.stepOut",
+        "when": "debugState == 'stopped'"
+    },
+    {
+        "key": "ctrl+c ctrl+n",
+        "command": "workbench.action.debug.stepOver",
+        "when": "debugState == 'stopped'"
+    },
+    {
+        "key": "ctrl+c ctrl+r",
+        "command": "workbench.action.debug.continue",
+        "when": "debugState == 'stopped'"
+    },
+    {
+        "key": "ctrl+c ctrl+s",
+        "command": "workbench.action.debug.stepInto",
+        "when": "debugState != 'inactive'"
+    },
+    {
+        "key": "f5",
+        "command": "workbench.action.debug.start",
+        "when": "debuggersAvailable && !inDebugMode"
+    },
+    {
+        "key": "f5",
+        "command": "-workbench.action.debug.start",
+        "when": "debuggersAvailable && debugState == 'inactive'"
+    }
+]

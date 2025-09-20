@@ -1,0 +1,51 @@
+{
+    "terminal.integrated.env": {
+        "ANACONDA_ENV_DIR": "/Users/paepcke/anaconda3/envs",
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"        
+    },
+    "workbench.colorTheme": "Default Dark Modern",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/src"
+    ],
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "python.defaultInterpreterPath": "${env:VSCODE_PYTHON_PATH}",
+    "python.envFile": "${workspaceFolder}/.env",    
+    "debug.stepping.skipFiles": [],
+    "editor.guides.indentation" : false,
+    "editor.suggest.sortMethod": "underscore",
+    "autoDocstring.docstringFormat" : "sphinx",
+    "autoDocstring.generateDocstringOnEnter" :  true,
+    "autoDocstring.quoteStyle": "'''",
+    "autoDocstring.startOnNewLine" : true,
+    "outline.sortOrder": "name",
+    "breadcrumbs.symbolSortOrder": "name",
+    "editor.minimap.enabled": false,
+    "outline.showBooleans": false,
+    "outline.showConstants": false,
+    "outline.showEnumMembers": false,
+    "outline.showEvents": false,
+    "outline.showFields": false,
+    "outline.showFiles": false,
+    "outline.showKeys": false,
+    "outline.showNamespaces": false,
+    "outline.showNull": false,
+    "outline.showNumbers": false,
+    "outline.showObjects": false,
+    "outline.showOperators": false,
+    "outline.showProperties": false,
+    "outline.showStrings": false,
+    "outline.showStructs": false,
+    "outline.showVariables": false,
+    "notebook.outline.showCodeCellSymbols": false,
+    "notebook.outline.showMarkdownHeadersOnly": false,
+    "outline.collapseItems": "alwaysCollapse",
+    "outline.problems.enabled": false,
+    "outline.showArrays": false,
+    "outline.problems.badges": false,
+    "outline.problems.colors": false,
+    "outline.showInterfaces": false,
+    "outline.showTypeParameters": false
+}
+
+

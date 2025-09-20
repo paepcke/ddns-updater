@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "justMyCode":true,
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "/Users/paepcke/VSCodeWorkspaces/therapist/src/:${env:PYTHONPATH}"
+            },
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Jest Debug",
+            "program": "${workspaceFolder}/node_modules/.bin/jest",
+            "args": ["--runInBand", "--watchAll=false"],
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+            }
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome against localhost",
+            "url": "https://localhost",
+            "webRoot": "${workspaceFolder}/front_end/html"
+        }        
+    ],
+    "compounds": [
+        {
+            "name": "Python + Chrome",
+            "configurations": ["Python: Current File", "Launch Chrome against localhost"]
+        }
+    ]
+}
