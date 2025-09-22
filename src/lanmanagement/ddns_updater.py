@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-20 14:57:06
+# @Last Modified time: 2025-09-22 09:17:02
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -19,6 +19,8 @@ from pathlib import Path
 import re
 import shutil
 import subprocess, sys
+
+from lanmanagement.ddns_service_adapters import DDNSServiceAdapter
 
 class DDNSUpdater:
 
@@ -38,31 +40,20 @@ class DDNSUpdater:
 	# Constructor
 	#-------------------	
 
-	def __init__(self, host: str, domain: str, period: int=0):
+	def __init__(self, service_nm: str, config_file: str):
 		'''
-		Prepare for IP check-and-update workflow. Host is the
-		name under which the DDNS service holds the target machine.
-		Domain is the corresponding domain.
+		Prepare for IP check-and-update workflow. Service name is
+		the DDNS service company, such as 'namecheap'. The config_file
+		is a .ini file with (at least) an information section on the
+		service to use. That section contains host, domain, and other
+		info. See file ddns_service_adapters.py for details.
 
-		If period not zero, it must be a positive int of minutes
-		to wait between re-checking whether this machine's outgoing
-		IP address has changed. If zero, the check happens immediately,
-		and just once. Use zero if cron is to run this script.
-		NOTE: the current implementation of recurring calls is not 
-		      ideal. It uses sleep, which, for instance, prevents signal
-			  processing such as cnt-C via SIGTERM. If you have cron
-			  set period to 0, and use crong
-
-		:param host: host for which DNS holds an IP
+		:param service_nm: name of DDNS service to use
 		:type host: str
-		:param domain: domain of the host
+		:param config_file: path to config file
 		:type domain: str
-		:param period: how many minutes between checking, and 
-			(possibly) updating IP
-		:type period: int
 		'''
-		self.host = host
-		self.domain = domain
+		self.service_nm = service_nm
 
 		self.logger = self.setup_logging(
 			DDNSUpdater.DDNS_LOG_FILE,
@@ -81,16 +72,9 @@ class DDNSUpdater:
 			self.logger.error("Could not find needed command 'curl'")
 			sys.exit(1)
 
-		if period == 0:
-			self.report_own_ip()
-			return
-		
-		# Period is number of minutes between checks:
-		while True:
-			# Not a good solution; use a scheduler instead
-			# On Linux/MacOS use cron, and set period to 0
-			self.report_own_ip()
-			time.sleep(period * 60)
+		# Obtain a DDNS service adapter that will provide
+		# update URLs appropriate for the chosen service provider:
+		self.service_adapter = DDNSServiceAdapter(config_file).get_service_adapter(service_nm)		
 
 	#------------------------------------
 	# report_own_ip
@@ -106,21 +90,13 @@ class DDNSUpdater:
 		
 		self.logger.info(f"IP changed from {cur_registered_ip} to {cur_own_ip}")
 		try:
-			with open(DDNSUpdater.DDNS_PASSWORD_FILE, 'r') as fp:
-				password = fp.readline().rstrip()
-			url = \
-				'https://dynamicdns.park-your-domain.com/update?' \
-				f"host={self.host}&" \
-				f"domain={self.domain}&" \
-				f"password={password}&" \
-				f"ip={cur_own_ip}"
-
+			update_url = self.service_adapter.get_update_url(cur_own_ip)
 			curl_proc = subprocess.run(
-				[self.curl_binary, url], capture_output=True, text=True
+				[self.curl_binary, update_url], capture_output=True, text=True
 			)
 			if curl_proc.returncode != 0:
 				msg = (f"DDNS update script failed to cUrl new A record "
-		   			   f"via URL {url}: {curl_proc.stderr}")
+		   			   f"via URL {update_url}: {curl_proc.stderr}")
 				self.logger.error(msg)
 				return
 		except Exception as e:
@@ -130,7 +106,7 @@ class DDNSUpdater:
 			# Log the success:
 			msg = f"Reported updated {cur_registered_ip} => {cur_own_ip}"
 			self.logger.info(msg)
-		
+
 	#------------------------------------
 	# get_dns_server
 	#-------------------	
@@ -333,29 +309,31 @@ if __name__ == '__main__':
 									 formatter_class=argparse.RawTextHelpFormatter,
 									 description="Regularly update DDNS service with new IP, if needed"
 									 )
-
-	parser.add_argument('-p', '--period',
-						help='number of minutes between checking IP, and reporting if needed; default: 10.',
-						type=int,
-						default=0
-	),
-	parser.add_argument('host',
-						help=('Name of host which is registered with DDNS service'),
+	
+	parser.add_argument('service_nm',
+						help=("Name of DDNS service to keep updated, such as 'namecheap'")
 	)
-	parser.add_argument('domain',
-						help=('Domain of registered host'),
+	parser.add_argument('config_path',
+						help=('Path to the .ini DDNS service(s) config file'),
 	)
 
 	args = parser.parse_args()
 
-	if args.period < 0:
-		print(f"IP check period must be a positive int, or zero, not {args.period}")
-		sys.exit(1)
+	# Provide all problems in one run:
+	errors = []
+	# Config file exists?
+	if not os.path.exists(args.config_path):
+		errors.append(f"Config file {args.config_path} not found")
+	
+	# Running as sudo?
+	if os.geteuid() != 0:
+		errors.append(f"Program {sys.argv[0]} must run as sudo")
 
-	if not DDNSUpdater.check_domain_syntax(args.domain):
-		print(f"Domain '{args.domain}' is not proper domain syntax")
-		sys.exit(1)		
+	if len(errors) > 0:
+		print("Problems:")
+		for err_msg in errors:
+			print(f"   {err_msg}")
+		sys.exit(1)
 	
-	
-	DDNSUpdater(args.host, args.domain, args.period)
+	DDNSUpdater(args.service_nm, args.config_file)
 	
