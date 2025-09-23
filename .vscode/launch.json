@@ -13,6 +13,17 @@
             },
         },
         {
+            "name": "Run ddns_updater.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/lanmanagement/ddns_updater.py",
+            "args": [
+                "--debug",
+                "namecheap",
+                "${workspaceFolder}/src/lanmanagement/ddns.ini"
+            ]
+        },
+        {
             "type": "node",
             "request": "launch",
             "name": "Jest Debug",
