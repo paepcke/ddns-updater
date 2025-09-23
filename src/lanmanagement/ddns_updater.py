@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-22 09:17:02
+# @Last Modified time: 2025-09-22 18:00:18
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -303,37 +303,36 @@ class DDNSUpdater:
 
 		return bool(domain_regex.match(domain_string))		
 
+def main():
+    parser = argparse.ArgumentParser(prog=os.path.basename(sys.argv[0]),
+                                     formatter_class=argparse.RawTextHelpFormatter,
+                                     description="Regularly update DDNS service with new IP, if needed"
+                                     )
+    
+    parser.add_argument('service_nm',
+                        help=("Name of DDNS service to keep updated, such as 'namecheap'")
+    )
+    parser.add_argument('config_path',
+                        help=('Path to the .ini DDNS service(s) config file'),
+    )
+    args = parser.parse_args()
+    # Provide all problems in one run:
+    errors = []
+    # Config file exists?
+    if not os.path.exists(args.config_path):
+        errors.append(f"Config file {args.config_path} not found")
+    
+    # Running as sudo?
+    if os.geteuid() != 0:
+        errors.append(f"Program {sys.argv[0]} must run as sudo")
+    if len(errors) > 0:
+        print("Problems:")
+        for err_msg in errors:
+            print(f"   {err_msg}")
+        sys.exit(1)
+    
+    DDNSUpdater(args.service_nm, args.config_path)  # Note: was config_file, should be config_path
+
 # ------------------------ Main ------------
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser(prog=os.path.basename(sys.argv[0]),
-									 formatter_class=argparse.RawTextHelpFormatter,
-									 description="Regularly update DDNS service with new IP, if needed"
-									 )
-	
-	parser.add_argument('service_nm',
-						help=("Name of DDNS service to keep updated, such as 'namecheap'")
-	)
-	parser.add_argument('config_path',
-						help=('Path to the .ini DDNS service(s) config file'),
-	)
-
-	args = parser.parse_args()
-
-	# Provide all problems in one run:
-	errors = []
-	# Config file exists?
-	if not os.path.exists(args.config_path):
-		errors.append(f"Config file {args.config_path} not found")
-	
-	# Running as sudo?
-	if os.geteuid() != 0:
-		errors.append(f"Program {sys.argv[0]} must run as sudo")
-
-	if len(errors) > 0:
-		print("Problems:")
-		for err_msg in errors:
-			print(f"   {err_msg}")
-		sys.exit(1)
-	
-	DDNSUpdater(args.service_nm, args.config_file)
-	
+	main()

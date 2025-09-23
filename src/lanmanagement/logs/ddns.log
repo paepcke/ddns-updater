@@ -1,0 +1,4 @@
+2025-09-22 18:05:43,630 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-22 18:05:43,630 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-22 18:07:47,706 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-22 18:07:47,709 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'

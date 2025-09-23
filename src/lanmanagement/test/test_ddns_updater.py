@@ -5,7 +5,7 @@
 # @Date:   2025-09-20 14:02:36
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/tests/test_ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-22 09:53:20
+# @Last Modified time: 2025-09-22 18:11:03
 #
 # **********************************************************
 
@@ -26,8 +26,7 @@ import subprocess
 # Add the src directory to the path to import the module under test
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from lanmanagement import ddns_updater
-from lanmanagement.ddns_updater import DDNSUpdater
+from lanmanagement.ddns_updater import DDNSUpdater, main
 
 class TestDDNSUpdater(unittest.TestCase):
     """Test cases for DDNSUpdater class."""
@@ -42,7 +41,7 @@ class TestDDNSUpdater(unittest.TestCase):
         self.mock_service_adapter.get_update_url.return_value = 'http://example.com/update?ip=1.2.3.4'
         
         # Patch the DDNSServiceAdapter to return our mock
-        self.ddns_adapter_patcher = patch('ddns_updater.DDNSServiceAdapter')
+        self.ddns_adapter_patcher = patch('lanmanagement.ddns_updater.DDNSServiceAdapter')
         self.mock_ddns_adapter_class = self.ddns_adapter_patcher.start()
         self.mock_ddns_adapter_instance = Mock()
         self.mock_ddns_adapter_instance.get_service_adapter.return_value = self.mock_service_adapter
@@ -52,8 +51,8 @@ class TestDDNSUpdater(unittest.TestCase):
         """Clean up after each test method."""
         self.ddns_adapter_patcher.stop()
 
-    @patch('ddns_updater.shutil.which')
-    @patch('ddns_updater.Path.mkdir')
+    @patch('lanmanagement.ddns_updater.shutil.which')
+    @patch('lanmanagement.ddns_updater.Path.mkdir')
     def test_init_success(self, mock_mkdir, mock_which):
         """Test successful initialization of DDNSUpdater."""
         # Mock that both dig and curl are found
@@ -70,8 +69,8 @@ class TestDDNSUpdater(unittest.TestCase):
             self.assertEqual(updater.curl_binary, '/usr/bin/curl')
             self.assertEqual(updater.service_adapter, self.mock_service_adapter)
 
-    @patch('ddns_updater.shutil.which')
-    @patch('ddns_updater.sys.exit')
+    @patch('lanmanagement.ddns_updater.shutil.which')
+    @patch('lanmanagement.ddns_updater.sys.exit')
     def test_init_missing_dig(self, mock_exit, mock_which):
         """Test initialization fails when dig is not found."""
         # Mock that dig is not found but curl is
@@ -86,8 +85,8 @@ class TestDDNSUpdater(unittest.TestCase):
             mock_logger.error.assert_called_with("Could not find needed command 'dig'")
             mock_exit.assert_called_with(1)
 
-    @patch('ddns_updater.shutil.which')
-    @patch('ddns_updater.sys.exit')
+    @patch('lanmanagement.ddns_updater.shutil.which')
+    @patch('lanmanagement.ddns_updater.sys.exit')
     def test_init_missing_curl(self, mock_exit, mock_which):
         """Test initialization fails when curl is not found."""
         # Mock that curl is not found but dig is
@@ -104,7 +103,7 @@ class TestDDNSUpdater(unittest.TestCase):
 
     def _create_test_updater(self):
         """Helper method to create a DDNSUpdater instance for testing."""
-        with patch('ddns_updater.shutil.which') as mock_which, \
+        with patch('lanmanagement.ddns_updater.shutil.which') as mock_which, \
              patch.object(DDNSUpdater, 'setup_logging') as mock_setup_logging:
             
             mock_which.side_effect = lambda x: '/usr/bin/' + x if x in ['dig', 'curl'] else None
@@ -116,7 +115,7 @@ class TestDDNSUpdater(unittest.TestCase):
             updater.domain = 'example.com'
             return updater
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_get_dns_server_success(self, mock_run):
         """Test successful DNS server retrieval."""
         updater = self._create_test_updater()
@@ -133,7 +132,7 @@ class TestDDNSUpdater(unittest.TestCase):
         mock_run.assert_called_with(['/usr/bin/dig', 'ns', 'example.com', '+short'], 
                                    capture_output=True, text=True)
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_get_dns_server_failure(self, mock_run):
         """Test DNS server retrieval failure."""
         updater = self._create_test_updater()
@@ -149,7 +148,7 @@ class TestDDNSUpdater(unittest.TestCase):
         
         self.assertIn('failed to identify authoritative NS', str(context.exception))
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_current_registered_ip_success(self, mock_run):
         """Test successful current registered IP retrieval."""
         updater = self._create_test_updater()
@@ -166,7 +165,7 @@ class TestDDNSUpdater(unittest.TestCase):
         self.assertEqual(ip, '192.168.1.100')
         self.assertEqual(mock_run.call_count, 2)
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_current_registered_ip_dns_failure(self, mock_run):
         """Test current registered IP retrieval fails when DNS server lookup fails."""
         updater = self._create_test_updater()
@@ -180,7 +179,7 @@ class TestDDNSUpdater(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             updater.current_registered_ip()
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_current_registered_ip_a_record_failure(self, mock_run):
         """Test current registered IP retrieval fails when A record lookup fails."""
         updater = self._create_test_updater()
@@ -197,7 +196,7 @@ class TestDDNSUpdater(unittest.TestCase):
         
         self.assertIn('could not obtain currently registered IP', str(context.exception))
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_cur_own_ip_success(self, mock_run):
         """Test successful current own IP retrieval."""
         updater = self._create_test_updater()
@@ -214,7 +213,7 @@ class TestDDNSUpdater(unittest.TestCase):
         mock_run.assert_called_with(['/usr/bin/curl', 'https://4.laxa.org'], 
                                    capture_output=True, text=True)
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_cur_own_ip_failure(self, mock_run):
         """Test current own IP retrieval failure."""
         updater = self._create_test_updater()
@@ -230,7 +229,7 @@ class TestDDNSUpdater(unittest.TestCase):
         
         self.assertIn('failed to cURL public IP', str(context.exception))
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_report_own_ip_no_change(self, mock_run):
         """Test report_own_ip when IP hasn't changed."""
         updater = self._create_test_updater()
@@ -248,7 +247,7 @@ class TestDDNSUpdater(unittest.TestCase):
         # Should not call the update URL since IPs are the same
         self.mock_service_adapter.get_update_url.assert_not_called()
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_report_own_ip_with_change(self, mock_run):
         """Test report_own_ip when IP has changed."""
         updater = self._create_test_updater()
@@ -270,7 +269,7 @@ class TestDDNSUpdater(unittest.TestCase):
         # Should log the successful update
         updater.logger.info.assert_called_with('Reported updated 192.168.1.100 => 203.0.113.42')
 
-    @patch('ddns_updater.subprocess.run')
+    @patch('lanmanagement.ddns_updater.subprocess.run')
     def test_report_own_ip_update_failure(self, mock_run):
         """Test report_own_ip when the update curl fails."""
         updater = self._create_test_updater()
@@ -291,8 +290,8 @@ class TestDDNSUpdater(unittest.TestCase):
         error_call = updater.logger.error.call_args[0][0]
         self.assertIn('DDNS update script failed to cUrl', error_call)
 
-    @patch('ddns_updater.Path.mkdir')
-    @patch('ddns_updater.RotatingFileHandler')
+    @patch('lanmanagement.ddns_updater.Path.mkdir')
+    @patch('lanmanagement.ddns_updater.RotatingFileHandler')
     def test_setup_logging(self, mock_handler_class, mock_mkdir):
         """Test logging setup."""
         updater = self._create_test_updater()
@@ -354,48 +353,43 @@ class TestDDNSUpdater(unittest.TestCase):
 class TestDDNSUpdaterMain(unittest.TestCase):
     """Test cases for the main function and argument parsing."""
 
-    @patch('ddns_updater.os.path.exists')
-    @patch('ddns_updater.os.geteuid')
-    @patch('ddns_updater.sys.exit')
+    @patch('lanmanagement.ddns_updater.os.path.exists')
+    @patch('lanmanagement.ddns_updater.os.geteuid')
+    @patch('lanmanagement.ddns_updater.sys.exit')
     def test_main_missing_config_file(self, mock_exit, mock_geteuid, mock_exists):
         """Test main function with missing config file."""
         mock_exists.return_value = False
         mock_geteuid.return_value = 0  # Running as root
         
         # Mock sys.argv
-        test_args = ['ddns_updater.py', 'namecheap', '/nonexistent/config.ini']
-        with patch('ddns_updater.sys.argv', test_args):
-            with patch('ddns_updater.argparse.ArgumentParser.parse_args') as mock_parse_args:
-                mock_args = Mock()
-                mock_args.service_nm = 'namecheap'
-                mock_args.config_path = '/nonexistent/config.ini'
-                mock_parse_args.return_value = mock_args
-                
-                # Import and run the main section
-                import ddns_updater
-                
-                mock_exit.assert_called_with(1)
+        test_args = ['lanmanagement.ddns_updater.py', 'namecheap', '/nonexistent/config.ini']
+        with patch('lanmanagement.ddns_updater.sys.argv', test_args):
+            # Call the main function
+            with self.assertRaises(FileNotFoundError):
+                main()
+            
+            # Now assert that exit was called
+            mock_exit.assert_called_with(1)
 
-    @patch('ddns_updater.os.path.exists')
-    @patch('ddns_updater.os.geteuid')
-    @patch('ddns_updater.sys.exit')
+    @patch('lanmanagement.ddns_updater.os.path.exists')
+    @patch('lanmanagement.ddns_updater.os.geteuid')
+    @patch('lanmanagement.ddns_updater.sys.exit')
     def test_main_not_running_as_sudo(self, mock_exit, mock_geteuid, mock_exists):
         """Test main function when not running as sudo."""
         mock_exists.return_value = True
         mock_geteuid.return_value = 1000  # Not running as root
         
         # Mock sys.argv
-        test_args = ['ddns_updater.py', 'namecheap', '/path/to/config.ini']
-        with patch('ddns_updater.sys.argv', test_args):
-            with patch('ddns_updater.argparse.ArgumentParser.parse_args') as mock_parse_args:
+        test_args = ['lanmanagement.ddns_updater.py', 'namecheap', '/path/to/config.ini']
+        with patch('lanmanagement.ddns_updater.sys.argv', test_args):
+            with patch('lanmanagement.ddns_updater.argparse.ArgumentParser.parse_args') as mock_parse_args:
                 mock_args = Mock()
                 mock_args.service_nm = 'namecheap'
                 mock_args.config_path = '/path/to/config.ini'
                 mock_parse_args.return_value = mock_args
-                
-                # Import and run the main section
-                import ddns_updater
-                
+
+                with self.assertRaises(TypeError):
+                    main() 
                 mock_exit.assert_called_with(1)
 
 
