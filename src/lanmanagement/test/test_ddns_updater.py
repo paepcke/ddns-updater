@@ -6,7 +6,7 @@
 # @Date:   2025-09-24 10:09:58
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/test/test_ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-24 12:38:36
+# @Last Modified time: 2025-09-24 15:13:12
 #
 # **********************************************************
 
@@ -222,7 +222,10 @@ class TestDDNSUpdaterMainFunction(unittest.TestCase):
     @patch('lanmanagement.ddns_updater.DDNSUpdater')
     @patch('lanmanagement.ddns_updater.os.geteuid')
     @patch('lanmanagement.ddns_updater.os.path.exists')
-    @patch('lanmanagement.ddns_updater.sys.argv', ['lanmanagement.ddns_updater.py', 'namecheap', '/tmp/config.ini'])
+    @patch('lanmanagement.ddns_updater.sys.argv', 
+           ['lanmanagement.ddns_updater.py', 
+            '-c', '/tmp/config.ini', 
+            'namecheap'])
     def test_main_success_as_root(self, mock_exists, mock_geteuid, mock_ddns_updater):
         """Test main function with valid arguments and running as root"""
         from lanmanagement.ddns_updater import main
@@ -232,12 +235,19 @@ class TestDDNSUpdaterMainFunction(unittest.TestCase):
         
         main()
         
-        mock_ddns_updater.assert_called_once_with('namecheap', '/tmp/config.ini', debug=False)
+        mock_ddns_updater.assert_called_once_with(
+            'namecheap',
+            '/tmp/config.ini',
+            debug=False)
 
     @patch('lanmanagement.ddns_updater.DDNSUpdater')
     @patch('lanmanagement.ddns_updater.os.geteuid')
     @patch('lanmanagement.ddns_updater.os.path.exists')
-    @patch('lanmanagement.ddns_updater.sys.argv', ['lanmanagement.ddns_updater.py', '--debug', 'namecheap', '/tmp/config.ini'])
+    @patch('lanmanagement.ddns_updater.sys.argv', 
+           ['lanmanagement.ddns_updater.py', 
+            '--debug', 
+            '-c', '/tmp/config.ini', 
+            'namecheap'])
     def test_main_success_debug_mode(self, mock_exists, mock_geteuid, mock_ddns_updater):
         """Test main function with debug flag"""
         from lanmanagement.ddns_updater import main
@@ -247,12 +257,16 @@ class TestDDNSUpdaterMainFunction(unittest.TestCase):
         
         main()
         
-        mock_ddns_updater.assert_called_once_with('namecheap', '/tmp/config.ini', debug=True)
+        mock_ddns_updater.assert_called_once_with(
+            'namecheap', '/tmp/config.ini', debug=True)
 
     @patch('lanmanagement.ddns_updater.sys.exit')
     @patch('lanmanagement.ddns_updater.os.geteuid')
     @patch('lanmanagement.ddns_updater.os.path.exists')
-    @patch('lanmanagement.ddns_updater.sys.argv', ['lanmanagement.ddns_updater.py', 'namecheap', '/nonexistent/config.ini'])
+    @patch('lanmanagement.ddns_updater.sys.argv', 
+           ['lanmanagement.ddns_updater.py', 
+            '-c', '/nonexistent/config.ini', 
+            'namecheap'])
     @patch('builtins.print')
     def test_main_config_file_not_found(self, mock_print, mock_exists, mock_geteuid, mock_exit):
         """Test main function when config file doesn't exist"""
@@ -274,7 +288,10 @@ class TestDDNSUpdaterMainFunction(unittest.TestCase):
     @patch('lanmanagement.ddns_updater.sys.exit')
     @patch('lanmanagement.ddns_updater.os.geteuid')
     @patch('lanmanagement.ddns_updater.os.path.exists')
-    @patch('lanmanagement.ddns_updater.sys.argv', ['lanmanagement.ddns_updater.py', 'namecheap', '/tmp/config.ini'])
+    @patch('lanmanagement.ddns_updater.sys.argv', 
+           ['lanmanagement.ddns_updater.py', 
+            '-c', '/tmp/config.ini',
+            'namecheap'])
     @patch('builtins.print')
     def test_main_not_running_as_root(self, mock_print, mock_exists, mock_geteuid, mock_exit):
         """Test main function when not running as root and not in debug mode"""
@@ -290,11 +307,11 @@ class TestDDNSUpdaterMainFunction(unittest.TestCase):
         # The mocked sys.argv is now:
         #   [
         #       'lanmanagement.ddns_updater.py',
-        #       'namecheap',
-        #       '/tmp/config.ini'
+        #       '-c', '/tmp/config.ini',
+        #       'namecheap'
         #    ]
         # Replace the ini path with the one we created
-        sys.argv[-1] = ddns_config_path 
+        sys.argv[-2] = ddns_config_path 
         main()
         
         mock_exit.assert_called_once_with(1)

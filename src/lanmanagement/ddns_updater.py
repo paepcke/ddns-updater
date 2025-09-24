@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-24 12:50:48
+# @Last Modified time: 2025-09-24 13:06:25
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
