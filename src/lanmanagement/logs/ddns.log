@@ -2,3 +2,102 @@
 2025-09-22 18:05:43,630 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
 2025-09-22 18:07:47,706 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
 2025-09-22 18:07:47,709 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-23 10:39:52,365 - __main__ - INFO - IP changed from 76.226.67.60 to 171.64.75.18
+2025-09-23 15:21:25,152 - __main__ - INFO - IP changed from 76.226.67.60 to 171.64.75.18
+2025-09-23 15:21:49,532 - __main__ - INFO - Bypassing DDNS service update because --debug
+2025-09-23 15:27:43,346 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-23 15:27:43,347 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 10:29:31,155 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 10:29:52,904 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 10:30:39,410 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 10:45:15,584 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 10:45:25,771 - lanmanagement.ddns_updater - INFO - IP changed from 192.168.1.100 to 171.64.75.18
+2025-09-24 10:45:32,555 - lanmanagement.ddns_updater - INFO - Bypassing DDNS service update because --debug
+2025-09-24 10:48:13,289 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 10:48:13,289 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 10:49:04,962 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 10:49:04,965 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 10:56:23,641 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 10:56:23,644 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 10:57:59,991 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 10:57:59,991 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 10:59:41,240 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 10:59:41,242 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 11:09:22,238 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 11:09:22,239 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 11:10:30,784 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 11:10:36,629 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 11:17:10,519 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 11:17:10,521 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 11:18:52,651 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 11:18:52,652 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 12:34:33,729 - lanmanagement.ddns_updater - INFO - IP changed from 65.254.242.180 to 171.64.75.18
+2025-09-24 12:34:33,744 - lanmanagement.ddns_updater - ERROR - DDNS update script failed to cUrl new A record via URL https://dynamicdns.park-your-domain.com/update?host=myhost&domain=mydomain.com&password=this is my secret&ip=171.64.75.18: curl: (3) URL rejected: Malformed input to a URL function
+
+2025-09-24 12:35:22,964 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:35:23,413 - lanmanagement.ddns_updater - INFO - IP changed from 192.168.1.100 to 171.64.75.18
+2025-09-24 12:35:23,414 - lanmanagement.ddns_updater - INFO - Bypassing DDNS service update because --debug
+2025-09-24 12:35:23,431 - lanmanagement.ddns_updater - INFO - Test message
+2025-09-24 12:35:23,431 - lanmanagement.ddns_updater - INFO - Test message
+2025-09-24 12:35:31,284 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:35:31,284 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:35:31,284 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:35:31,285 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 12:35:31,285 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 12:35:31,285 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 12:35:35,526 - lanmanagement.ddns_updater - INFO - IP changed from 13.248.169.48
+76.223.54.146 to 171.64.75.18
+2025-09-24 12:35:35,526 - lanmanagement.ddns_updater - INFO - IP changed from 13.248.169.48
+76.223.54.146 to 171.64.75.18
+2025-09-24 12:35:35,526 - lanmanagement.ddns_updater - INFO - IP changed from 13.248.169.48
+76.223.54.146 to 171.64.75.18
+2025-09-24 12:35:35,526 - lanmanagement.ddns_updater - INFO - IP changed from 13.248.169.48
+76.223.54.146 to 171.64.75.18
+2025-09-24 12:35:35,639 - lanmanagement.ddns_updater - INFO - Reported updated 13.248.169.48
+76.223.54.146 => 171.64.75.18
+2025-09-24 12:35:35,639 - lanmanagement.ddns_updater - INFO - Reported updated 13.248.169.48
+76.223.54.146 => 171.64.75.18
+2025-09-24 12:35:35,639 - lanmanagement.ddns_updater - INFO - Reported updated 13.248.169.48
+76.223.54.146 => 171.64.75.18
+2025-09-24 12:35:35,639 - lanmanagement.ddns_updater - INFO - Reported updated 13.248.169.48
+76.223.54.146 => 171.64.75.18
+2025-09-24 12:35:51,669 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:35:51,670 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 12:35:58,114 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:35:58,565 - lanmanagement.ddns_updater - INFO - IP changed from 192.168.1.100 to 171.64.75.18
+2025-09-24 12:35:58,567 - lanmanagement.ddns_updater - INFO - Bypassing DDNS service update because --debug
+2025-09-24 12:35:58,579 - lanmanagement.ddns_updater - INFO - Test message
+2025-09-24 12:35:58,579 - lanmanagement.ddns_updater - INFO - Test message
+2025-09-24 12:36:03,713 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:36:04,169 - lanmanagement.ddns_updater - INFO - IP changed from 192.168.1.100 to 171.64.75.18
+2025-09-24 12:36:04,170 - lanmanagement.ddns_updater - INFO - Bypassing DDNS service update because --debug
+2025-09-24 12:38:42,708 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:38:43,161 - lanmanagement.ddns_updater - INFO - IP changed from 192.168.1.100 to 171.64.75.18
+2025-09-24 12:38:43,163 - lanmanagement.ddns_updater - INFO - Bypassing DDNS service update because --debug
+2025-09-24 12:38:48,275 - lanmanagement.ddns_updater - INFO - Test message
+2025-09-24 12:38:48,275 - lanmanagement.ddns_updater - INFO - Test message
+2025-09-24 12:38:56,487 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:38:56,936 - lanmanagement.ddns_updater - INFO - IP changed from 192.168.1.100 to 171.64.75.18
+2025-09-24 12:38:56,937 - lanmanagement.ddns_updater - INFO - Bypassing DDNS service update because --debug
+2025-09-24 12:38:56,943 - lanmanagement.ddns_updater - INFO - Test message
+2025-09-24 12:38:56,943 - lanmanagement.ddns_updater - INFO - Test message
+2025-09-24 12:38:56,946 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:38:56,946 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:38:56,946 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:38:56,952 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 12:38:56,952 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 12:38:56,952 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'
+2025-09-24 12:38:57,450 - lanmanagement.ddns_updater - INFO - IP changed from 13.248.169.48
+76.223.54.146 to 171.64.75.18
+2025-09-24 12:38:57,450 - lanmanagement.ddns_updater - INFO - IP changed from 13.248.169.48
+76.223.54.146 to 171.64.75.18
+2025-09-24 12:38:57,450 - lanmanagement.ddns_updater - INFO - IP changed from 13.248.169.48
+76.223.54.146 to 171.64.75.18
+2025-09-24 12:38:57,450 - lanmanagement.ddns_updater - INFO - IP changed from 13.248.169.48
+76.223.54.146 to 171.64.75.18
+2025-09-24 12:38:57,452 - lanmanagement.ddns_updater - ERROR - Error while reporting IP: Could not open secrets file '/var/folders/n_/xkgf5_wd21717sfzfd1p7zww0000gq/T/tmprl61wvnu/test_secret.txt'
+2025-09-24 12:38:57,452 - lanmanagement.ddns_updater - ERROR - Error while reporting IP: Could not open secrets file '/var/folders/n_/xkgf5_wd21717sfzfd1p7zww0000gq/T/tmprl61wvnu/test_secret.txt'
+2025-09-24 12:38:57,452 - lanmanagement.ddns_updater - ERROR - Error while reporting IP: Could not open secrets file '/var/folders/n_/xkgf5_wd21717sfzfd1p7zww0000gq/T/tmprl61wvnu/test_secret.txt'
+2025-09-24 12:38:57,452 - lanmanagement.ddns_updater - ERROR - Error while reporting IP: Could not open secrets file '/var/folders/n_/xkgf5_wd21717sfzfd1p7zww0000gq/T/tmprl61wvnu/test_secret.txt'
+2025-09-24 12:39:03,428 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'dig'
+2025-09-24 12:39:03,428 - lanmanagement.ddns_updater - ERROR - Could not find needed command 'curl'

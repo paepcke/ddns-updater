@@ -1,367 +1,470 @@
+ # **********************************************************
+ #
+ # @Author: Andreas Paepcke
+ # @Date:   2025-09-24 10:12:03
+ # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/test/test_ddns_service_adapters.py
+ # @Last Modified by:   Andreas Paepcke
+ # @Last Modified time: 2025-09-24 10:12:05
+ #
+ # **********************************************************
 #!/usr/bin/env python3
-
-# **********************************************************
-#
-# @Author: Claude of Anthropic
-# @Date:   2025-09-22 08:00:00
-# @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/test/test_ddns_service_adapters.py
-# @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-22 09:37:20
-#
-# **********************************************************
-
-"""
-Unit tests for ddns_service_adapters module.
-
-Tests the DDNSServiceAdapter base class and NameCheap adapter implementation.
-Uses temporary files and directories for configuration testing.
-
-Test Structure
-TestDDNSServiceAdapter: Tests the base class functionality including:
-
-Configuration file handling (valid/invalid files)
-Service adapter factory method
-Secret retrieval from files
-Path expansion with tildes and environment variables
-
-TestNameCheap: Tests the NameCheap adapter implementation:
-
-Proper instantiation through factory (direct instantiation forbidden)
-URL generation for DDNS updates
-Error handling for missing configuration options
-
-TestAdapterRegistry: Tests the automatic adapter registration mechanism.
-"""
 
 import unittest
 import tempfile
 import os
-from pathlib import Path
-from unittest.mock import patch
 import configparser
+from pathlib import Path
+from unittest.mock import patch, mock_open
 
-# Import the module under test
-from lanmanagement.ddns_service_adapters import DDNSServiceAdapter, NameCheap
+# Assuming the module is in the same directory or properly importable
+from ddns_service_adapters import DDNSServiceManager, NameCheap
 
 
-class TestDDNSServiceAdapter(unittest.TestCase):
-    """Test cases for the DDNSServiceAdapter base class."""
+class TestDDNSServiceManager(unittest.TestCase):
+    """Test cases for DDNSServiceManager class"""
 
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.temp_dir = tempfile.mkdtemp()
-        self.config_file = Path(self.temp_dir) / "test_ddns.ini"
-        self.secrets_file = Path(self.temp_dir) / "test_secret.txt"
+        # Reset the singleton instance for clean tests
+        DDNSServiceManager._instance = None
         
-    def tearDown(self):
-        """Clean up after each test method."""
-        # Clean up temporary files
-        for file_path in [self.config_file, self.secrets_file]:
-            if file_path.exists():
-                file_path.unlink()
-        os.rmdir(self.temp_dir)
-
-    def create_test_config(self, sections_data):
-        """Helper method to create a test configuration file.
+        # Create a temporary directory for test files
+        self.test_dir = tempfile.mkdtemp()
+        self.config_file = os.path.join(self.test_dir, 'test_ddns.ini')
+        self.secrets_file = os.path.join(self.test_dir, 'test_secret.txt')
         
-        Args:
-            sections_data (dict): Dictionary of section names to option dictionaries
-        """
+        # Create a test config file
         config = configparser.ConfigParser()
-        for section_name, options in sections_data.items():
-            config.add_section(section_name)
-            for key, value in options.items():
-                config.set(section_name, key, value)
+        config['namecheap'] = {
+            'url_root': 'https://dynamicdns.park-your-domain.com/update?',
+            'host': 'testhost',
+            'domain': 'testdomain.com',
+            'secrets_file': self.secrets_file
+        }
         
         with open(self.config_file, 'w') as f:
             config.write(f)
-
-    def create_test_secret(self, secret_content):
-        """Helper method to create a test secrets file.
         
-        Args:
-            secret_content (str): Content to write to secrets file
-        """
+        # Create a test secrets file
         with open(self.secrets_file, 'w') as f:
-            f.write(secret_content)
+            f.write('test_secret_password')
 
-    def test_init_with_custom_config(self):
-        """Test initialization with custom config file."""
-        self.create_test_config({
-            'namecheap': {
-                'url_root': 'https://dynamicdns.park-your-domain.com/update?',
-                'host': 'testhost',
-                'domain': 'example.com',
-                'secrets_file': str(self.secrets_file)
-            }
-        })
+    def tearDown(self):
+        """Clean up after each test method."""
+        # Clean up temporary files
+        import shutil
+        shutil.rmtree(self.test_dir, ignore_errors=True)
         
-        adapter = DDNSServiceAdapter(self.config_file)
-        self.assertEqual(adapter.config_file, self.config_file)
-        self.assertIsInstance(adapter.config, configparser.ConfigParser)
+        # Reset singleton
+        DDNSServiceManager._instance = None
 
-    def test_init_with_invalid_config_file(self):
-        """Test initialization with non-existent config file."""
-        invalid_path = Path(self.temp_dir) / "nonexistent.ini"
-        with self.assertRaises(FileNotFoundError) as cm:
-            DDNSServiceAdapter(invalid_path)
-        self.assertIn("does not exist", str(cm.exception))
+    def test_singleton_pattern(self):
+        """Test that DDNSServiceManager implements singleton pattern correctly"""
+        manager1 = DDNSServiceManager(self.config_file)
+        manager2 = DDNSServiceManager(self.config_file)
+        
+        self.assertIs(manager1, manager2, "DDNSServiceManager should be a singleton")
+        self.assertEqual(id(manager1), id(manager2), "Both instances should have same memory address")
+
+    def test_init_with_valid_config(self):
+        """Test initialization with a valid config file"""
+        manager = DDNSServiceManager(self.config_file)
+        
+        self.assertTrue(hasattr(manager, 'config'), "Manager should have config attribute")
+        self.assertTrue(manager.config.has_section('namecheap'), "Config should have namecheap section")
+        self.assertEqual(manager.config_file, self.config_file, "Config file path should be stored")
+
+    def test_init_with_nonexistent_config(self):
+        """Test initialization with nonexistent config file raises FileNotFoundError"""
+        nonexistent_file = '/nonexistent/path/config.ini'
+        
+        with self.assertRaises(FileNotFoundError) as context:
+            DDNSServiceManager(nonexistent_file)
+        
+        self.assertIn("does not exist", str(context.exception))
+
+    def test_init_with_empty_config(self):
+        """Test initialization with empty config file raises TypeError"""
+        empty_config_file = os.path.join(self.test_dir, 'empty.ini')
+        with open(empty_config_file, 'w') as f:
+            f.write('')  # Empty file
+        
+        with self.assertRaises(TypeError) as context:
+            DDNSServiceManager(empty_config_file)
+        
+        self.assertIn("seems empty", str(context.exception))
+
+    def test_default_config_file(self):
+        """Test that default config file path is set correctly"""
+        # This test checks the class attribute, not requiring file existence
+        expected_path = Path(__file__).parent / 'ddns.ini'
+        # We can't test the actual file since it might not exist, but we can test the path construction
+        self.assertTrue(isinstance(DDNSServiceManager.DEFAULT_CONFIG_FILE, Path))
+
+    def test_service_name_on_parent_class(self):
+        """Test that service_name() raises TypeError when called on parent class"""
+        manager = DDNSServiceManager(self.config_file)
+        
+        with self.assertRaises(TypeError) as context:
+            manager.service_name()
+        
+        self.assertIn("service adapter instance", str(context.exception))
+
+    def test_service_options_with_service_name(self):
+        """Test service_options() with explicit service name"""
+        manager = DDNSServiceManager(self.config_file)
+        options = manager.service_options('namecheap')
+        
+        expected_options = {
+            'url_root': 'https://dynamicdns.park-your-domain.com/update?',
+            'host': 'testhost',
+            'domain': 'testdomain.com',
+            'secrets_file': self.secrets_file
+        }
+        
+        self.assertEqual(options, expected_options, "Should return correct service options")
 
     def test_get_service_adapter_success(self):
-        """Test successful retrieval of service adapter."""
-        self.create_test_config({
-            'namecheap': {
-                'url_root': 'https://dynamicdns.park-your-domain.com/update?',
-                'host': 'testhost',
-                'domain': 'example.com',
-                'secrets_file': str(self.secrets_file)
-            }
-        })
+        """Test successful retrieval of service adapter"""
+        manager = DDNSServiceManager(self.config_file)
+        adapter = manager.get_service_adapter('namecheap')
         
-        adapter_factory = DDNSServiceAdapter(self.config_file)
-        service_adapter = adapter_factory.get_service_adapter('namecheap')
-        self.assertIsInstance(service_adapter, NameCheap)
+        self.assertIsInstance(adapter, NameCheap, "Should return NameCheap adapter instance")
+        self.assertTrue(hasattr(adapter, 'config'), "Adapter should have config attribute")
 
     def test_get_service_adapter_no_config_section(self):
-        """Test get_service_adapter with missing config section."""
-        self.create_test_config({'somesection': {'someoption': 'foo'}})
-        adapter_factory = DDNSServiceAdapter(self.config_file)
-        with self.assertRaises(NotImplementedError) as cm:
-            adapter_factory.get_service_adapter('nonexistent')
-        self.assertIn("has no entry in config file", str(cm.exception))
+        """Test get_service_adapter with service that has no config section"""
+        manager = DDNSServiceManager(self.config_file)
+        
+        with self.assertRaises(NotImplementedError) as context:
+            manager.get_service_adapter('nonexistent_service')
+        
+        self.assertIn("has no entry in config file", str(context.exception))
 
     def test_get_service_adapter_no_implementation(self):
-        """Test get_service_adapter with missing implementation class."""
-        self.create_test_config({
-            'unsupported': {
-                'url_root': 'https://example.com',
-                'host': 'testhost'
-            }
-        })
+        """Test get_service_adapter with service that has config but no implementation"""
+        # Add a config section for a service that doesn't have an implementation
+        config = configparser.ConfigParser()
+        config.read(self.config_file)
+        config['unimplemented_service'] = {'host': 'test', 'domain': 'test.com'}
         
-        adapter_factory = DDNSServiceAdapter(self.config_file)
-        with self.assertRaises(NotImplementedError) as cm:
-            adapter_factory.get_service_adapter('unsupported')
-        self.assertIn("is not implemented", str(cm.exception))
+        with open(self.config_file, 'w') as f:
+            config.write(f)
+        
+        manager = DDNSServiceManager(self.config_file)
+        
+        with self.assertRaises(NotImplementedError) as context:
+            manager.get_service_adapter('unimplemented_service')
+        
+        self.assertIn("is not implemented", str(context.exception))
+
+    def test_ddns_update_url_on_parent(self):
+        """Test that ddns_update_url raises NotImplementedError when called on parent"""
+        manager = DDNSServiceManager(self.config_file)
+        
+        with self.assertRaises(NotImplementedError) as context:
+            manager.ddns_update_url('192.168.1.1')
+        
+        self.assertIn("must be called on a subclass", str(context.exception))
 
     def test_retrieve_secret_success(self):
-        """Test successful secret retrieval."""
-        secret_content = "test_secret_password"
-        self.create_test_secret(secret_content)
-        self.create_test_config({
-            'namecheap': {
-                'secrets_file': str(self.secrets_file)
-            }
-        })
+        """Test successful secret retrieval"""
+        manager = DDNSServiceManager(self.config_file)
+        secret = manager._retrieve_secret('namecheap')
         
-        adapter = DDNSServiceAdapter(self.config_file)
-        retrieved_secret = adapter._retrieve_secret('namecheap')
-        self.assertEqual(retrieved_secret, secret_content)
+        self.assertEqual(secret, 'test_secret_password', "Should retrieve correct secret")
 
     def test_retrieve_secret_no_secrets_file_option(self):
-        """Test secret retrieval with missing secrets_file option."""
-        self.create_test_config({
-            'namecheap': {
-                'host': 'testhost'
-            }
-        })
+        """Test _retrieve_secret when config has no secrets_file option"""
+        # Create config without secrets_file option
+        config = configparser.ConfigParser()
+        config['no_secrets'] = {'host': 'test', 'domain': 'test.com'}
         
-        adapter = DDNSServiceAdapter(self.config_file)
-        with self.assertRaises(KeyError) as cm:
-            adapter._retrieve_secret('namecheap')
-        self.assertIn("No 'secrets_file' entry", str(cm.exception))
+        config_file = os.path.join(self.test_dir, 'no_secrets.ini')
+        with open(config_file, 'w') as f:
+            config.write(f)
+        
+        manager = DDNSServiceManager(config_file)
+        
+        with self.assertRaises(KeyError) as context:
+            manager._retrieve_secret('no_secrets')
+        
+        self.assertIn("No 'secrets_file' entry", str(context.exception))
 
     def test_retrieve_secret_file_not_found(self):
-        """Test secret retrieval with non-existent secrets file."""
-        nonexistent_file = Path(self.temp_dir) / "nonexistent_secret.txt"
-        self.create_test_config({
-            'namecheap': {
-                'secrets_file': str(nonexistent_file)
-            }
-        })
+        """Test _retrieve_secret when secrets file doesn't exist"""
+        # Create config pointing to nonexistent secrets file
+        config = configparser.ConfigParser()
+        config['bad_secrets'] = {
+            'host': 'test',
+            'domain': 'test.com',
+            'secrets_file': '/nonexistent/secrets.txt'
+        }
         
-        adapter = DDNSServiceAdapter(self.config_file)
-        with self.assertRaises(FileNotFoundError) as cm:
-            adapter._retrieve_secret('namecheap')
-        self.assertIn("Could not open secrets file", str(cm.exception))
+        config_file = os.path.join(self.test_dir, 'bad_secrets.ini')
+        with open(config_file, 'w') as f:
+            config.write(f)
+        
+        manager = DDNSServiceManager(config_file)
+        
+        with self.assertRaises(FileNotFoundError) as context:
+            manager._retrieve_secret('bad_secrets')
+        
+        self.assertIn("Could not open secrets file", str(context.exception))
 
     def test_expand_path_with_tilde(self):
-        """Test path expansion with tilde."""
-        adapter = DDNSServiceAdapter.__new__(DDNSServiceAdapter)  # Create without __init__
-        test_path = "~/test/path"
-        expanded = adapter.expand_path(test_path)
-        expected = str(Path.home() / "test" / "path")
-        self.assertEqual(expanded, expected)
+        """Test expand_path with tilde expansion"""
+        manager = DDNSServiceManager(self.config_file)
+        
+        # Test tilde expansion
+        path_with_tilde = '~/test/path'
+        expanded = manager.expand_path(path_with_tilde)
+        
+        self.assertTrue(expanded.startswith('/'), "Expanded path should be absolute")
+        self.assertNotIn('~', expanded, "Tilde should be expanded")
 
-    def test_expand_path_with_env_var(self):
-        """Test path expansion with environment variables."""
-        adapter = DDNSServiceAdapter.__new__(DDNSServiceAdapter)  # Create without __init__
+    def test_expand_path_with_env_vars(self):
+        """Test expand_path with environment variables"""
+        manager = DDNSServiceManager(self.config_file)
         
         # Set a test environment variable
-        test_env_var = "TEST_DDNS_PATH"
-        test_env_value = "/tmp/test"
-        os.environ[test_env_var] = test_env_value
+        os.environ['TEST_DDNS_PATH'] = '/test/env/path'
         
         try:
-            test_path = f"${test_env_var}/secrets"
-            expanded = adapter.expand_path(test_path)
-            expected = "/tmp/test/secrets"
-            self.assertEqual(expanded, expected)
+            path_with_env = '$TEST_DDNS_PATH/subdir'
+            expanded = manager.expand_path(path_with_env)
+            
+            self.assertEqual(expanded, '/test/env/path/subdir', "Environment variable should be expanded")
         finally:
             # Clean up environment variable
-            del os.environ[test_env_var]
+            del os.environ['TEST_DDNS_PATH']
 
-    def test_expand_path_absolute(self):
-        """Test path expansion with absolute path."""
-        adapter = DDNSServiceAdapter.__new__(DDNSServiceAdapter)  # Create without __init__
-        test_path = "/absolute/path/test"
-        expanded = adapter.expand_path(test_path)
-        self.assertEqual(expanded, test_path)
+    def test_repr(self):
+        """Test __repr__ method"""
+        manager = DDNSServiceManager(self.config_file)
+        repr_str = repr(manager)
+        
+        self.assertIn("DDNS Service Manager", repr_str, "Repr should identify the class")
+        self.assertIn("0x", repr_str, "Repr should include memory address")
+
+    def test_subclass_registration(self):
+        """Test that subclasses are automatically registered"""
+        # Check that NameCheap is registered
+        self.assertIn('namecheap', DDNSServiceManager._SERVICE_TO_IMPL_REGISTRY)
+        self.assertEqual(DDNSServiceManager._SERVICE_TO_IMPL_REGISTRY['namecheap'], NameCheap)
+        
+        # Check reverse registry
+        self.assertIn(NameCheap, DDNSServiceManager._IMPL_TO_SERVICE_REGISTRY)
+        self.assertEqual(DDNSServiceManager._IMPL_TO_SERVICE_REGISTRY[NameCheap], 'namecheap')
 
 
 class TestNameCheap(unittest.TestCase):
-    """Test cases for the NameCheap adapter class."""
+    """Test cases for NameCheap class"""
 
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.temp_dir = tempfile.mkdtemp()
-        self.config_file = Path(self.temp_dir) / "test_ddns.ini"
-        self.secrets_file = Path(self.temp_dir) / "test_secret.txt"
+        # Reset the singleton instance for clean tests
+        DDNSServiceManager._instance = None
+        
+        # Create a temporary directory for test files
+        self.test_dir = tempfile.mkdtemp()
+        self.config_file = os.path.join(self.test_dir, 'test_ddns.ini')
+        self.secrets_file = os.path.join(self.test_dir, 'test_secret.txt')
+        
+        # Create a test config file
+        config = configparser.ConfigParser()
+        config['namecheap'] = {
+            'url_root': 'https://dynamicdns.park-your-domain.com/update?',
+            'host': 'myhost',
+            'domain': 'mydomain.com',
+            'secrets_file': self.secrets_file
+        }
+        
+        with open(self.config_file, 'w') as f:
+            config.write(f)
+        
+        # Create a test secrets file
+        with open(self.secrets_file, 'w') as f:
+            f.write('my_secret_password_123')
 
     def tearDown(self):
         """Clean up after each test method."""
         # Clean up temporary files
-        for file_path in [self.config_file, self.secrets_file]:
-            if file_path.exists():
-                file_path.unlink()
-        os.rmdir(self.temp_dir)
-
-    def create_test_config(self, sections_data):
-        """Helper method to create a test configuration file."""
-        config = configparser.ConfigParser()
-        for section_name, options in sections_data.items():
-            config.add_section(section_name)
-            for key, value in options.items():
-                config.set(section_name, key, value)
+        import shutil
+        shutil.rmtree(self.test_dir, ignore_errors=True)
         
-        with open(self.config_file, 'w') as f:
-            config.write(f)
+        # Reset singleton
+        DDNSServiceManager._instance = None
 
-    def create_test_secret(self, secret_content):
-        """Helper method to create a test secrets file."""
-        with open(self.secrets_file, 'w') as f:
-            f.write(secret_content)
-
-    def test_init_direct_instantiation_forbidden(self):
-        """Test that direct instantiation of NameCheap is forbidden."""
-        with self.assertRaises(TypeError) as cm:
+    def test_direct_instantiation_raises_error(self):
+        """Test that direct instantiation of NameCheap raises TypeError"""
+        with self.assertRaises(TypeError) as context:
             NameCheap()
-        self.assertIn("must be instantiated via DDNSServiceAdapter", str(cm.exception))
+        
+        self.assertIn("must be instantiated via", str(context.exception))
 
     def test_ddns_update_url_success(self):
-        """Test successful URL generation for DDNS update."""
-        secret_content = "test_password"
-        self.create_test_secret(secret_content)
-        self.create_test_config({
-            'namecheap': {
-                'url_root': 'https://dynamicdns.park-your-domain.com/update?',
-                'host': 'testhost',
-                'domain': 'example.com',
-                'secrets_file': str(self.secrets_file)
-            }
-        })
+        """Test successful URL generation for DDNS update"""
+        manager = DDNSServiceManager(self.config_file)
+        namecheap = manager.get_service_adapter('namecheap')
         
-        adapter_factory = DDNSServiceAdapter(self.config_file)
-        namecheap_adapter = adapter_factory.get_service_adapter('namecheap')
+        new_ip = '192.168.1.100'
+        url = namecheap.ddns_update_url(new_ip)
         
-        test_ip = "192.168.1.100"
         expected_url = (
-            "https://dynamicdns.park-your-domain.com/update?"
-            "host=testhost&"
-            "domain=example.com&"
-            f"password={secret_content}&"
-            f"ip={test_ip}"
+            'https://dynamicdns.park-your-domain.com/update?'
+            'host=myhost&'
+            'domain=mydomain.com&'
+            'password=my_secret_password_123&'
+            'ip=192.168.1.100'
         )
         
-        result_url = namecheap_adapter.ddns_update_url(test_ip)
-        self.assertEqual(result_url, expected_url)
-        
+        self.assertEqual(url, expected_url, "Should generate correct update URL")
+
     def test_ddns_update_url_missing_url_root(self):
-        """Test URL generation with missing url_root config."""
-        self.create_test_config({
-            'namecheap': {
-                'host': 'testhost',
-                'domain': 'example.com',
-                'secrets_file': str(self.secrets_file)
-            }
-        })
+        """Test ddns_update_url when config missing url_root"""
+        # Create config without url_root
+        config = configparser.ConfigParser()
+        config['namecheap'] = {
+            'host': 'myhost',
+            'domain': 'mydomain.com',
+            'secrets_file': self.secrets_file
+        }
         
-        adapter_factory = DDNSServiceAdapter(self.config_file)
-        namecheap_adapter = adapter_factory.get_service_adapter('namecheap')
+        config_file = os.path.join(self.test_dir, 'no_url_root.ini')
+        with open(config_file, 'w') as f:
+            config.write(f)
         
-        with self.assertRaises(KeyError) as cm:
-            namecheap_adapter.ddns_update_url("192.168.1.100")
-        self.assertIn("has not option 'url_root'", str(cm.exception))
+        manager = DDNSServiceManager(config_file)
+        namecheap = manager.get_service_adapter('namecheap')
+        
+        with self.assertRaises(KeyError) as context:
+            namecheap.ddns_update_url('192.168.1.100')
+        
+        self.assertIn("has not option 'url_root'", str(context.exception))
 
     def test_ddns_update_url_missing_host(self):
-        """Test URL generation with missing host config."""
-        self.create_test_config({
-            'namecheap': {
-                'url_root': 'https://dynamicdns.park-your-domain.com/update?',
-                'domain': 'example.com',
-                'secrets_file': str(self.secrets_file)
-            }
-        })
+        """Test ddns_update_url when config missing host"""
+        # Create config without host
+        config = configparser.ConfigParser()
+        config['namecheap'] = {
+            'url_root': 'https://dynamicdns.park-your-domain.com/update?',
+            'domain': 'mydomain.com',
+            'secrets_file': self.secrets_file
+        }
         
-        adapter_factory = DDNSServiceAdapter(self.config_file)
-        namecheap_adapter = adapter_factory.get_service_adapter('namecheap')
+        config_file = os.path.join(self.test_dir, 'no_host.ini')
+        with open(config_file, 'w') as f:
+            config.write(f)
         
-        with self.assertRaises(KeyError) as cm:
-            namecheap_adapter.ddns_update_url("192.168.1.100")
-        self.assertIn("has not option 'host'", str(cm.exception))
+        manager = DDNSServiceManager(config_file)
+        namecheap = manager.get_service_adapter('namecheap')
+        
+        with self.assertRaises(KeyError) as context:
+            namecheap.ddns_update_url('192.168.1.100')
+        
+        self.assertIn("has not option 'host'", str(context.exception))
 
     def test_ddns_update_url_missing_domain(self):
-        """Test URL generation with missing domain config."""
-        self.create_test_config({
-            'namecheap': {
-                'url_root': 'https://dynamicdns.park-your-domain.com/update?',
-                'host': 'testhost',
-                'secrets_file': str(self.secrets_file)
-            }
-        })
+        """Test ddns_update_url when config missing domain"""
+        # Create config without domain
+        config = configparser.ConfigParser()
+        config['namecheap'] = {
+            'url_root': 'https://dynamicdns.park-your-domain.com/update?',
+            'host': 'myhost',
+            'secrets_file': self.secrets_file
+        }
         
-        adapter_factory = DDNSServiceAdapter(self.config_file)
-        namecheap_adapter = adapter_factory.get_service_adapter('namecheap')
+        config_file = os.path.join(self.test_dir, 'no_domain.ini')
+        with open(config_file, 'w') as f:
+            config.write(f)
         
-        with self.assertRaises(KeyError) as cm:
-            namecheap_adapter.ddns_update_url("192.168.1.100")
-        self.assertIn("has not option 'domain'", str(cm.exception))
-
-    def test_adapter_registry_auto_registration(self):
-        """Test that NameCheap is automatically registered in the adapter registry."""
-        self.assertIn('NameCheap'.lower(), DDNSServiceAdapter._ADAPTER_REGISTRY)
-        self.assertEqual(DDNSServiceAdapter._ADAPTER_REGISTRY['namecheap'], NameCheap)
-
-class TestAdapterRegistry(unittest.TestCase):
-    """Test cases for the adapter registry mechanism."""
-
-    def test_adapter_registry_contains_namecheap(self):
-        """Test that the adapter registry contains NameCheap."""
-        self.assertIn('NameCheap', DDNSServiceAdapter._ADAPTER_REGISTRY)
-        self.assertEqual(DDNSServiceAdapter._ADAPTER_REGISTRY['NameCheap'], NameCheap)
-
-    def test_custom_adapter_registration(self):
-        """Test that custom adapters are automatically registered."""
-        # Define a custom adapter class for testing
-        class TestAdapter(DDNSServiceAdapter):
-            def ddns_update_url(self, new_ip: str) -> str:
-                return f"http://test.com/update?ip={new_ip}"
+        manager = DDNSServiceManager(config_file)
+        namecheap = manager.get_service_adapter('namecheap')
         
-        # Verify it was automatically registered
-        self.assertIn('TestAdapter', DDNSServiceAdapter._ADAPTER_REGISTRY)
-        self.assertEqual(DDNSServiceAdapter._ADAPTER_REGISTRY['TestAdapter'], TestAdapter)
+        with self.assertRaises(KeyError) as context:
+            namecheap.ddns_update_url('192.168.1.100')
+        
+        self.assertIn("has not option 'domain'", str(context.exception))
+
+    def test_service_name(self):
+        """Test service_name method returns correct name"""
+        manager = DDNSServiceManager(self.config_file)
+        namecheap = manager.get_service_adapter('namecheap')
+        
+        self.assertEqual(namecheap.service_name(), 'namecheap', "Should return correct service name")
+
+    def test_service_options(self):
+        """Test service_options method returns correct options"""
+        manager = DDNSServiceManager(self.config_file)
+        namecheap = manager.get_service_adapter('namecheap')
+        
+        options = namecheap.service_options()
+        expected_options = {
+            'url_root': 'https://dynamicdns.park-your-domain.com/update?',
+            'host': 'myhost',
+            'domain': 'mydomain.com',
+            'secrets_file': self.secrets_file
+        }
+        
+        self.assertEqual(options, expected_options, "Should return correct service options")
+
+    def test_repr(self):
+        """Test __repr__ method for NameCheap instance"""
+        manager = DDNSServiceManager(self.config_file)
+        namecheap = manager.get_service_adapter('namecheap')
+        
+        repr_str = repr(namecheap)
+        
+        self.assertIn("DDNS Service namecheap", repr_str, "Repr should identify the service")
+        self.assertIn("0x", repr_str, "Repr should include memory address")
+
+    def test_different_ip_formats(self):
+        """Test ddns_update_url with different IP formats"""
+        manager = DDNSServiceManager(self.config_file)
+        namecheap = manager.get_service_adapter('namecheap')
+        
+        # Test various IP formats
+        test_ips = [
+            '192.168.1.1',
+            '10.0.0.1', 
+            '172.16.0.1',
+            '8.8.8.8',
+            '255.255.255.255'
+        ]
+        
+        for ip in test_ips:
+            url = namecheap.ddns_update_url(ip)
+            self.assertIn(f'ip={ip}', url, f"URL should contain correct IP {ip}")
+            self.assertTrue(url.startswith('https://'), "URL should start with https://")
+
+
+class TestRegistryMechanisms(unittest.TestCase):
+    """Test the automatic registration mechanisms for DDNS service adapters"""
+
+    def test_service_registries_populated(self):
+        """Test that the service registries are properly populated"""
+        # Test that NameCheap is registered
+        self.assertIn('namecheap', DDNSServiceManager._SERVICE_TO_IMPL_REGISTRY)
+        self.assertIn(NameCheap, DDNSServiceManager._IMPL_TO_SERVICE_REGISTRY)
+        
+        # Test bidirectional mapping
+        service_name = 'namecheap'
+        service_class = DDNSServiceManager._SERVICE_TO_IMPL_REGISTRY[service_name]
+        self.assertEqual(service_class, NameCheap)
+        
+        reverse_lookup = DDNSServiceManager._IMPL_TO_SERVICE_REGISTRY[NameCheap]
+        self.assertEqual(reverse_lookup, service_name)
+
+    def test_registry_consistency(self):
+        """Test that both registries are consistent with each other"""
+        # For each entry in the service->impl registry, 
+        # there should be a corresponding entry in the impl->service registry
+        for service_name, impl_class in DDNSServiceManager._SERVICE_TO_IMPL_REGISTRY.items():
+            self.assertIn(impl_class, DDNSServiceManager._IMPL_TO_SERVICE_REGISTRY)
+            self.assertEqual(DDNSServiceManager._IMPL_TO_SERVICE_REGISTRY[impl_class], service_name)
 
 
 if __name__ == '__main__':
-    unittest.main()
-    
+    # Run the tests
+    unittest.main(verbosity=2)

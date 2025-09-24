@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-22 18:00:18
+# @Last Modified time: 2025-09-24 09:02:20
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -14,13 +14,15 @@ import argparse
 import logging
 from logging.handlers import RotatingFileHandler
 import os
-import time
 from pathlib import Path
 import re
 import shutil
 import subprocess, sys
 
-from lanmanagement.ddns_service_adapters import DDNSServiceAdapter
+src_dir = str(Path(__file__).parent.parent.resolve())
+if src_dir not in sys.path:
+	sys.path.insert(0, src_dir)
+from lanmanagement.ddns_service_adapters import DDNSServiceManager
 
 class DDNSUpdater:
 
@@ -40,7 +42,7 @@ class DDNSUpdater:
 	# Constructor
 	#-------------------	
 
-	def __init__(self, service_nm: str, config_file: str):
+	def __init__(self, service_nm: str, config_file: str, debug: bool=False):
 		'''
 		Prepare for IP check-and-update workflow. Service name is
 		the DDNS service company, such as 'namecheap'. The config_file
@@ -54,6 +56,7 @@ class DDNSUpdater:
 		:type domain: str
 		'''
 		self.service_nm = service_nm
+		self.debug = debug
 
 		self.logger = self.setup_logging(
 			DDNSUpdater.DDNS_LOG_FILE,
@@ -74,7 +77,27 @@ class DDNSUpdater:
 
 		# Obtain a DDNS service adapter that will provide
 		# update URLs appropriate for the chosen service provider:
-		self.service_adapter = DDNSServiceAdapter(config_file).get_service_adapter(service_nm)		
+		ddns_srv_manager = DDNSServiceManager(config_file)
+		self.service_adapter = ddns_srv_manager.get_service_adapter(service_nm)
+		
+    	# Get config Section structure, which acts like:
+		#      {"host": "myhost",
+		#       "domain": "mydomain", 
+		#            ...
+		#       }
+		self.options: dict[str,str] = self.service_adapter.service_options()
+		try:
+			self.host = self.options['host']
+		except KeyError:
+			self.logger.error(f"Init file at {config_file} has no entry for 'host'")
+			sys.exit(1)
+		try:
+			self.domain = self.options['domain']
+		except KeyError:
+			self.logger.error(f"Init file at {config_file} has no entry for 'domain'")
+			sys.exit(1)
+
+		self.report_own_ip()		
 
 	#------------------------------------
 	# report_own_ip
@@ -90,7 +113,11 @@ class DDNSUpdater:
 		
 		self.logger.info(f"IP changed from {cur_registered_ip} to {cur_own_ip}")
 		try:
-			update_url = self.service_adapter.get_update_url(cur_own_ip)
+			update_url = self.service_adapter.ddns_update_url(cur_own_ip)
+			if self.debug:
+				# Bypass the actual updating, which would required sudo
+				self.logger.info("Bypassing DDNS service update because --debug")
+				return
 			curl_proc = subprocess.run(
 				[self.curl_binary, update_url], capture_output=True, text=True
 			)
@@ -308,9 +335,14 @@ def main():
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      description="Regularly update DDNS service with new IP, if needed"
                                      )
-    
+
+    parser.add_argument('-d', '--debug',
+						action='store_true',
+                        help="ability to run without sudo, but no DDNS update occurs",
+						default=False
+    )
     parser.add_argument('service_nm',
-                        help=("Name of DDNS service to keep updated, such as 'namecheap'")
+                        help="Name of DDNS service to keep updated, such as 'namecheap'"
     )
     parser.add_argument('config_path',
                         help=('Path to the .ini DDNS service(s) config file'),
@@ -322,8 +354,8 @@ def main():
     if not os.path.exists(args.config_path):
         errors.append(f"Config file {args.config_path} not found")
     
-    # Running as sudo?
-    if os.geteuid() != 0:
+    # Running as sudo? Required unless --debug flag:
+    if os.geteuid() != 0 and not args.debug:
         errors.append(f"Program {sys.argv[0]} must run as sudo")
     if len(errors) > 0:
         print("Problems:")
@@ -331,8 +363,9 @@ def main():
             print(f"   {err_msg}")
         sys.exit(1)
     
-    DDNSUpdater(args.service_nm, args.config_path)  # Note: was config_file, should be config_path
+    DDNSUpdater(args.service_nm, args.config_path, debug=args.debug)  # Note: was config_file, should be config_path
 
 # ------------------------ Main ------------
 if __name__ == '__main__':
 	main()
+
