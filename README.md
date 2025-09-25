@@ -31,12 +31,14 @@ Administrators can extend the implementation to interact with additional DDNS se
 [namecheap]
 
 # Part of URL for updating service before the query parms:
-url_root = https://dynamicdns.park-your-domain.com/update?
+url_root     = https://dynamicdns.park-your-domain.com/update?
 secrets_file = $HOME/.ssh/ddns_password
 # The query parameters:
-host     = myhost
-domain   = mydomain.net
+host         = myhost
+domain       = mydomain.net
 ```
+
+Other services might require additional information.
 
 The administrator creates a short subclass, such as `NameCheap` in `ddns_service_adapters.py`. The class just needs to provide a single method `ddns_update_url(new_ip),` which returns a URL suitable to send to the new DDNS service for IP update.
 
