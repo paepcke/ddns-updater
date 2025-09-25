@@ -209,3 +209,4 @@ __marimo__/
 src/gateway_controls/lan_cache/
 .DS_Store
 *.log
+readmeDesign/
