@@ -32,7 +32,7 @@ host     = myhost
 domain   = mydomain.net
 ```
 
-The administrator creates a short subclass, such as `NameCheap` in `ddns_service_adapters.py`. The class just needs to provide a single method `ddns_update_url(new_ip)`, which returns a URL suitable to send to the new DDNS service for IP update.
+The administrator creates a short subclass, such as `NameCheap` in `ddns_service_adapters.py`. The class just needs to provide a single method `ddns_update_url(new_ip),` which returns a URL suitable to send to the new DDNS service for IP update.
 
 ### Architecture
 
@@ -45,4 +45,4 @@ The main class is `DDNSUpdater`. Its constructor takes a DDNS servicename, such 
        >
 </div>
 
-The `DDNSUpdater` requests a handler for the DDNS service from a singleton instance of class `DDNSServiceManager`. This returned handler will be an instance of the subclass mentioned in [Extending for New DDNS Services ](#extending-for-new-ddns-services). The `DDNSUpdater` then calls `ddns_update_url()` on the handler whenever it determines that the host's IP address has changed.
+The `DDNSUpdater` requests a handler for the respective DDNS service from a singleton instance of class `DDNSServiceManager`. This returned handler will be an instance of the subclass mentioned in [Extending for New DDNS Services ](#extending-for-new-ddns-services). The `DDNSUpdater` then calls `ddns_update_url()` on the handler whenever it determines that the host's IP address has changed. It issues an HTTP request using the returned URL.
