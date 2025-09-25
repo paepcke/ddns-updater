@@ -5,13 +5,19 @@ Synchronizes the possibly changing IP address of a host myhost.mydomain.com to a
 ## Overview
 Usage: a cron job would typically be used to run
 
-`<proj-root>/src/lanmanagement/ddns_updater.py <ddns-service-name>`
+`sudo <proj-root>/src/lanmanagement/ddns_updater.py <ddns-service-name>`
 
 Assuming the program runs on myhost.mydomain.com, it:
 
 1. Detects myhost's current IP address
 2. Inquires which IP DNS services currently provide for the host
 3. If the two IP addresses differ, updates the DDNS service
+
+A rotating log is maintained at
+
+`<proj-root>/src/lanmanagement/logs/ddns.log<n>`
+
+To obtain a list of supported DDNS services, add the --list (or -l) to the above call.
 
 ## Implementation
 

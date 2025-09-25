@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-24 13:06:25
+# @Last Modified time: 2025-09-25 09:32:04
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -104,6 +104,14 @@ class DDNSUpdater:
 	#-------------------
 
 	def report_own_ip(self):
+		'''
+		Obtains this host's current IP, and compares it with 
+		the DDNS service's IP for this host. If the two IPs
+		differ, the DDNS service is updated to be the current
+		IP.
+
+		Logs the activity.
+		'''
 
 		cur_own_ip = self.cur_own_ip()
 		cur_registered_ip = self.current_registered_ip()
@@ -133,6 +141,24 @@ class DDNSUpdater:
 			# Log the success:
 			msg = f"Reported updated {cur_registered_ip} => {cur_own_ip}"
 			self.logger.info(msg)
+
+	#------------------------------------
+	# services_list
+	#-------------------
+
+	def services_list(self) -> list[str]:
+		'''
+		Return a list of currently implemented DDNS services
+
+		:return: list of all implemented DDNS services
+		:rtype: list[str]
+		'''
+
+		# A classmethod on DDNSServiceManager provides
+		# the list
+
+		service_names = self.service_adapter.services_list()
+		return service_names
 
 	#------------------------------------
 	# get_dns_server
@@ -342,6 +368,11 @@ def main():
                         help="ability to run without sudo, but no DDNS update occurs",
 						default=False
     )
+	parser.add_argument('-l', '--list',
+						action='store_true',
+                        help="print list of DDNS service names",
+						default=False
+    )
 	parser.add_argument('-c', '--config_path',
 						default=default_init_path,
                         help=f"Path to the .ini DDNS service(s) config file; default: {default_init_path}"
@@ -365,7 +396,11 @@ def main():
 			print(f"   {err_msg}")
 		sys.exit(1)
 
-	DDNSUpdater(args.service_nm, args.config_path, debug=args.debug)  # Note: was config_file, should be config_path
+	updater = DDNSUpdater(args.service_nm, args.config_path, debug=args.debug)
+	if args.list:
+		for service_nm in updater.services_list():
+			print(service_nm)
+
 
 # ------------------------ Main ------------
 if __name__ == '__main__':

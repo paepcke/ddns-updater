@@ -4,7 +4,7 @@
  # @Date:   2025-09-24 10:12:03
  # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/test/test_ddns_service_adapters.py
  # @Last Modified by:   Andreas Paepcke
- # @Last Modified time: 2025-09-24 10:12:05
+ # @Last Modified time: 2025-09-25 09:22:34
  #
  # **********************************************************
 #!/usr/bin/env python3
@@ -17,7 +17,7 @@ from pathlib import Path
 from unittest.mock import patch, mock_open
 
 # Assuming the module is in the same directory or properly importable
-from ddns_service_adapters import DDNSServiceManager, NameCheap
+from lanmanagement.ddns_service_adapters import DDNSServiceManager, NameCheap
 
 
 class TestDDNSServiceManager(unittest.TestCase):
@@ -290,6 +290,14 @@ class TestNameCheap(unittest.TestCase):
     def tearDown(self):
         """Clean up after each test method."""
         # Clean up temporary files
+        try:
+            self.ddns_tmp_dir.cleanup()
+        except AttributeError:
+            # No temp dir was created with a 
+            # valid .ini and a secrets pwd,
+            # i.e. make_ini_file_and_secret() was
+            # not called during the previous test:
+            pass
         import shutil
         shutil.rmtree(self.test_dir, ignore_errors=True)
         
@@ -464,6 +472,72 @@ class TestRegistryMechanisms(unittest.TestCase):
             self.assertIn(impl_class, DDNSServiceManager._IMPL_TO_SERVICE_REGISTRY)
             self.assertEqual(DDNSServiceManager._IMPL_TO_SERVICE_REGISTRY[impl_class], service_name)
 
+    def test_services_list_one_entry(self):
+        '''Test .ini with a single entry'''
+        # Make a known .ini file:
+        config_path = self.make_ini_file_and_secret(services=['namecheap'])
+        service_manager = DDNSServiceManager(config_path)
+        services = service_manager.services_list()
+        self.assertListEqual(services, ['namecheap'])
+
+    def test_services_list_no_entries(self):
+        '''Test .ini with no entry'''
+        # Make a known .ini file with the default single entry,
+        # because the DDNSServiceManager will baulk at an empty .ini
+        config_path = self.make_ini_file_and_secret()
+
+        service_manager = DDNSServiceManager(config_path)
+        # Artificially empty the config:
+        service_manager.config.clear()
+        # ... and the serviceName->impl registry:
+        service_manager._SERVICE_TO_IMPL_REGISTRY = {}
+        services = service_manager.services_list()
+        self.assertEqual(len(services), 0)
+
+    def test_services_list_one_entry_no_subclass(self):
+        '''Test .ini with a single entry'''
+        # Make a known .ini file:
+        config_path = self.make_ini_file_and_secret(services=['noimplementation'])
+        service_manager = DDNSServiceManager(config_path)
+        services = service_manager.services_list()
+        self.assertEqual(len(services), 0)
+
+        
+
+
+    # ----------------- Utilities --------------
+    def make_ini_file_and_secret(self, services=['namecheap']):
+
+        self.ddns_tmp_dir = tempfile.TemporaryDirectory(
+            dir='/tmp', 
+            prefix='ddns_tmp_')
+        tmp_dir_nm = self.ddns_tmp_dir.name
+        config_path = os.path.join(tmp_dir_nm, 'ddns.ini')
+        secrets_path = os.path.join(tmp_dir_nm, 'ddns_secret')
+        config_data = {}
+        for serv_nm in services:
+            host = f"myhost_{serv_nm}"
+            domain = f"mydomain_{serv_nm}.com"
+            options = {
+                'host': host,
+                'domain': domain,
+                'url_root': 'https://dynamicdns.park-your-domain.com/update?',
+                'secrets_file' : secrets_path
+            }
+            # Add new Section (service)
+            config_data[serv_nm] = options
+
+        # Populate the config file:
+        config = configparser.ConfigParser()
+        config.read_dict(config_data)
+        with open(config_path, 'w') as fd:
+            config.write(fd)
+            
+        # Populate the secret:
+        with open(secrets_path, 'w') as fd:
+            fd.write("this is my secret\n")
+
+        return config_path
 
 if __name__ == '__main__':
     # Run the tests

@@ -4,7 +4,7 @@
 # @Date:   2025-09-20 18:25:56
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/ddns_service_adapters.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-23 15:46:07
+# @Last Modified time: 2025-09-25 09:21:15
 #
 # **********************************************************
 
@@ -134,6 +134,24 @@ class DDNSServiceManager:
         # Just use the lookup table that was updated
         # automatically with the definition of this subclass:
         return DDNSServiceManager._IMPL_TO_SERVICE_REGISTRY[self.__class__]
+
+    #------------------------------------
+    # services_list
+    #-------------------
+
+    def services_list(self):
+        '''
+        Returns a list of DDNS service covered in the .ini file.
+        Ensures that each entry also has a respective subclass that
+        implements the ddns_update_url() method
+
+        :return: a list of DDNS services names
+        :rtype: list[str]
+        '''
+        service_names = set(self.config.sections())
+        service_impls = set(DDNSServiceManager._SERVICE_TO_IMPL_REGISTRY.keys())
+        available = service_names.intersection(service_impls)
+        return list(available)
 
     #------------------------------------
     # service_options
@@ -362,5 +380,5 @@ class NameCheap(DDNSServiceManager):
     #-------------------
 
     def __repr__(self):
-        repr_str = f"<DDNS Service {self.service_name} at {hex(id(self))}>"
+        repr_str = f"<DDNS Service {self.service_name()} at {hex(id(self))}>"
         return repr_str
