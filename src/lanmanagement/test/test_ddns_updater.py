@@ -6,7 +6,7 @@
 # @Date:   2025-09-24 10:09:58
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/test/test_ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-24 15:13:12
+# @Last Modified time: 2025-09-27 15:48:47
 #
 # **********************************************************
 
@@ -94,7 +94,6 @@ class TestDDNSUpdater(unittest.TestCase):
         self.assertEqual(updater.host, 'testhost')
         self.assertEqual(updater.domain, 'testdomain.com')
         self.assertEqual(updater.dig_binary, '/usr/bin/dig')
-        self.assertEqual(updater.curl_binary, '/usr/bin/curl')
 
     @patch('lanmanagement.ddns_updater.shutil.which')
     @patch('lanmanagement.ddns_updater.sys.exit')
@@ -131,6 +130,24 @@ class TestDDNSUpdater(unittest.TestCase):
         # Test logging functionality
         logger.info("Test message")
         self.assertTrue(os.path.exists(log_file))
+
+    @patch('lanmanagement.ddns_updater.DDNSUpdater.__init__', return_value=None)
+    def test_fetch_flex(self, mocked_DDNSUpdater_init):
+        # Call fetch_flex() with user agent curl and get
+        # a simple URL string:
+        with patch('lanmanagement.ddns_updater.requests.get') as mock_func:
+            mock_func.return_value.text = '192.168.1.100\n'
+            updater = DDNSUpdater()
+            ip = updater.fetch_flex('some_url', user_agent='curl')
+            self.assertEqual(ip, '192.168.1.100')
+        # This time ask fetch_flex() to call requests 
+        # as a regular python program. The fetch_flex()
+        # should not strip whitespace:
+        with patch('lanmanagement.ddns_updater.requests.get') as mock_func:
+            mock_func.return_value.text = '<HTML></HTML>\n'
+            updater = DDNSUpdater()
+            html = updater.fetch_flex('some_url', user_agent='python')
+            self.assertEqual(html, '<HTML></HTML>\n')
 
 
 class TestDDNSUpdaterStaticMethods(unittest.TestCase):

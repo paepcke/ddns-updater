@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-25 09:32:04
+# @Last Modified time: 2025-09-27 15:50:23
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -18,6 +18,13 @@ from pathlib import Path
 import re
 import shutil
 import subprocess, sys
+
+import requests
+from requests.exceptions import RequestException, \
+								ConnectionError, \
+								Timeout, \
+								HTTPError
+
 
 src_dir = str(Path(__file__).parent.parent.resolve())
 if src_dir not in sys.path:
@@ -69,12 +76,6 @@ class DDNSUpdater:
 			self.logger.error("Could not find needed command 'dig'")
 			sys.exit(1)
 
-		# The OS level 'curl' program:
-		self.curl_binary = shutil.which('curl')
-		if self.curl_binary is None:
-			self.logger.error("Could not find needed command 'curl'")
-			sys.exit(1)
-
 		# Obtain a DDNS service adapter that will provide
 		# update URLs appropriate for the chosen service provider:
 		ddns_srv_manager = DDNSServiceManager(config_file)
@@ -120,23 +121,20 @@ class DDNSUpdater:
 			return
 		
 		self.logger.info(f"IP changed from {cur_registered_ip} to {cur_own_ip}")
+
+		update_url = self.service_adapter.ddns_update_url(cur_own_ip)
+		if self.debug:
+			# Bypass the actual updating, which would required sudo
+			self.logger.info("Bypassing DDNS service update because --debug")
+			return
+
 		try:
-			update_url = self.service_adapter.ddns_update_url(cur_own_ip)
-			if self.debug:
-				# Bypass the actual updating, which would required sudo
-				self.logger.info("Bypassing DDNS service update because --debug")
-				return
-			curl_proc = subprocess.run(
-				[self.curl_binary, update_url], capture_output=True, text=True
-			)
-			if curl_proc.returncode != 0:
-				msg = (f"DDNS update script failed to cUrl new A record "
-		   			   f"via URL {update_url}: {curl_proc.stderr}")
-				self.logger.error(msg)
-				return
+			_response = self.fetch_flex(update_url, user_agent='curl')
 		except Exception as e:
-			msg = f"Error while reporting IP: {e}"
+			msg = (f"DDNS update script failed to obtain new A record "
+					f"via URL {update_url}: {e}")
 			self.logger.error(msg)
+			return
 		else:
 			# Log the success:
 			msg = f"Reported updated {cur_registered_ip} => {cur_own_ip}"
@@ -231,17 +229,90 @@ class DDNSUpdater:
 		
 		:return: IP listed as orginator in outgoing packets
 		:rtype: str
-		:raises RuntimeError: if OS level 'curl fails
+		:raises RuntimeError: if request to echo own IP fails
 		'''
+		own_ip_url = DDNSUpdater.WHATS_MY_IP_URL
+		try:
+			own_ip = self.fetch_flex(own_ip_url, user_agent='curl')
+		except Exception as e:
+			msg = (f"DDNS update script failed to obtain current IP "
+					f"via URL {own_ip_url}: {e}")
+			self.logger.error(msg)
+			return
+		return own_ip
 
-		curl_ip_cmd = [self.curl_binary, DDNSUpdater.WHATS_MY_IP_URL]
-		curl_proc = subprocess.run(curl_ip_cmd, capture_output=True, text=True)
-		if curl_proc.returncode != 0:
-			msg = f"DDNS update script failed to cURL public IP: {curl_proc.stderr}"
-			raise RuntimeError(msg)
+	#------------------------------------
+	# fetch_flex
+	#-------------------
+
+	def fetch_flex(self, url, timeout=30, user_agent='python'):
+		'''
+		Flexible Web access via a URL.
 		
-		ip = curl_proc.stdout.rstrip()
-		return ip
+		Issue an HTTP request, optionally behaving like
+		the OS level curl command. Curl contacts servers
+		as a special user agent, to which servers may 
+		return differently formatted results.
+
+		For example: a what's-my-ip server like laxa.org 
+		returns an HTML page if called by Python's default
+		headers. But returns a simple "<ip-str>\n" if it
+		believes to be called by curl.
+
+		To have get() calls look like a 'regular' Python program,
+		set the user_agent keyword to 'python'. To have returns
+		look like the curl command, set user_agent='curl'
+
+		:param url: URL to contact
+		:type url: str
+		:param timeout: timeout in seconds, defaults to 30
+		:type timeout: int, optional
+		:param user_agent: whether to behave like curl, or Python code, defaults to 'python'
+		:type user_agent: str, optional
+		:returns: text with white space trimmed; could be JSON, could be HTML, or plain text
+		:rtype: str
+		:raises ConnectionError: DNS failure, refused connection, etc.
+		:raises TimeoutError: timeout occurred
+		:raises ValueError: for client error
+		:raises RuntimeError: for server-side error
+		:raises RuntimeError: any other error
+		'''
+		try:
+			if user_agent == 'curl':
+				headers = {
+					'User-Agent': 'curl/7.68.0',
+					'Accept': '*/*'
+				}
+				response = requests.get(url, headers=headers, timeout=timeout)
+			else:
+				response = requests.get(url, timeout=timeout)
+			# Raise HTTPError for bad status codes
+			response.raise_for_status()
+			resp_txt = response.text.strip() if user_agent == 'curl' \
+											 else response.text
+			return resp_txt
+
+  		# Be explicit about the type of error:
+		except ConnectionError:
+			# Network problem (DNS failure, refused connection, etc.)
+			raise ConnectionError(f"Failed to connect to {url}")
+			
+		except Timeout:
+			# Request timed out
+			raise TimeoutError(f"Request to {url} timed out after {timeout} seconds")
+			
+		except HTTPError as e:
+			# HTTP error status codes (4xx, 5xx)
+			status_code = e.response.status_code
+			if 400 <= status_code < 500:
+				raise ValueError(f"Client error {status_code} for URL {url}")
+			else:
+				raise RuntimeError(f"Server error {status_code} for URL {url}")
+				
+		except RequestException as e:
+			# Catch-all for other requests-related errors
+			raise RuntimeError(f"Request failed for {url}: {str(e)}")			
+			
 
 	#------------------------------------
 	# setup_logging
