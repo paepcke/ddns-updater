@@ -9,7 +9,7 @@
             "justMyCode":true,
             "console": "integratedTerminal",
             "env": {
-                "PYTHONPATH": "/Users/paepcke/VSCodeWorkspaces/therapist/src/:${env:PYTHONPATH}"
+                "PYTHONPATH": "${workspaceFolder}/src/:${env:PYTHONPATH}"
             },
         },
         {
