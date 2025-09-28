@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-27 15:50:23
+# @Last Modified time: 2025-09-27 17:05:49
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -380,53 +380,7 @@ class DDNSUpdater:
 
 		return logger
 	
-	#------------------------------------
-	# check_domain_syntax
-	#-------------------
-
-	@staticmethod
-	def check_domain_syntax(domain_string):
-		"""
-		Checks if a string is a validly formatted Internet domain name.
-
-		The validation is based on RFCs 1034, 1123, and 952.
-		It checks for the overall structure of a domain name, including:
-		- Overall length limit (up to 253 characters).
-		- Label length limit (1 to 63 characters).
-		- Labels can contain letters (a-z, A-Z), digits (0-9), and hyphens (-).
-		- Labels must not start or end with a hyphen.
-		- Top-level domain (TLD) must be at least 2 characters long.
-
-		:param domain_string: the domain name to be checked
-		:type domain_string: str
-		:returns: whether or not string is syntactically a legal domain
-		:rtype: bool
-		"""
-
-		if not isinstance(domain_string, str) or not domain_string:
-			return False
-
-		# A regular expression pattern for a domain name.
-		# The pattern is broken down into parts for clarity:
-		# ^                            - Anchor to the start of the string.
-		# (?!-)                        - Negative lookahead to ensure the first character is not a hyphen.
-		# (?:[a-zA-Z0-9-]{1,63})      - Match a label (1-63 chars: letters, digits, hyphens).
-		# (?<!-)                       - Negative lookbehind to ensure the label does not end with a hyphen.
-		# (?:\.[a-zA-Z0-9-]{1,63})* - Match zero or more subdomains, each starting with a dot.
-		# (?<!-)(?:\.[a-zA-Z]{2,})    - Match the TLD, which must not end with a hyphen and must be at least 2 chars.
-		# $                            - Anchor to the end of the string.
-		# The domain name as a whole must be at most 253 characters.
-
-		domain_regex = re.compile(
-			r'^(?!-)(?:[a-zA-Z0-9-]{1,63})(?<!-)(?:\.[a-zA-Z0-9-]{1,63})*(?<!-)(?:\.[a-zA-Z]{2,})$'
-		)
-
-		# Check overall length first to be more efficient.
-		if len(domain_string) > 253:
-			return False
-
-		return bool(domain_regex.match(domain_string))		
-
+# ----------------------- Main Function (top level) --------------
 def main():
 	default_init_path = str(Path(__file__).parent.joinpath('ddns.ini'))
 	parser = argparse.ArgumentParser(prog=os.path.basename(sys.argv[0]),

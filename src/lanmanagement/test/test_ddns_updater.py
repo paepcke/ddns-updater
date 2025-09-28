@@ -6,7 +6,7 @@
 # @Date:   2025-09-24 10:09:58
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/test/test_ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-27 15:48:47
+# @Last Modified time: 2025-09-27 17:08:06
 #
 # **********************************************************
 
@@ -23,6 +23,7 @@ from unittest.mock import patch, MagicMock, call, mock_open
 
 # Assuming the module is in the same directory or properly importable
 from lanmanagement.ddns_updater import DDNSUpdater
+from lanmanagement.utils import Utils
 
 
 class TestDDNSUpdater(unittest.TestCase):
@@ -168,7 +169,7 @@ class TestDDNSUpdaterStaticMethods(unittest.TestCase):
         
         for domain in valid_domains:
             with self.subTest(domain=domain):
-                result = DDNSUpdater.check_domain_syntax(domain)
+                result = Utils.check_domain_syntax(domain)
                 self.assertTrue(result, f"Domain '{domain}' should be valid")
 
     def test_check_domain_syntax_invalid_domains(self):
@@ -191,7 +192,7 @@ class TestDDNSUpdaterStaticMethods(unittest.TestCase):
         
         for domain in invalid_domains:
             with self.subTest(domain=domain):
-                result = DDNSUpdater.check_domain_syntax(domain)
+                result = Utils.check_domain_syntax(domain)
                 self.assertFalse(result, f"Domain '{domain}' should be invalid")
 
     def test_check_domain_syntax_non_string_input(self):
@@ -206,7 +207,7 @@ class TestDDNSUpdaterStaticMethods(unittest.TestCase):
         
         for invalid_input in invalid_inputs:
             with self.subTest(input=invalid_input):
-                result = DDNSUpdater.check_domain_syntax(invalid_input)
+                result = Utils.check_domain_syntax(invalid_input)
                 self.assertFalse(result, f"Non-string input '{invalid_input}' should be invalid")
 
 
