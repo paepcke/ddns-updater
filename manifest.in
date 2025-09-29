@@ -1,0 +1,2 @@
+prune src/lanmanagement/test
+prune src/lanmanagement/logs

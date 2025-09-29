@@ -4,12 +4,13 @@ requires = ["setuptools >= 64", "cython", "wheel"]
 
 [project]
 
-name = "ddns-updater"
-description = "Update DDNS services"
-version = "0.1.0"
+name = "ddns-updater-ext"
+description = "Update DDNS services; extensible"
+version = "0.1.4"
 readme  = "README.md"
 authors = [
-  {name = "Andreas Paepcke", email = "paepcke@cs.stanford.edu"}
+  {name = "Andreas Paepcke", email = "paepcke@cs.stanford.edu"},
+  {name = "Daniel Paepcke", email = "daniel@paepcke.org"}
   ]
 maintainers = [
   {name = "Andreas Paepcke", email = "paepcke@cs.stanford.edu"}
@@ -32,6 +33,7 @@ test = [
 # as the root of all Python packages:
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["lanmanagement.test", "lanmanagement.test.*"]
 
 [project.urls]
 

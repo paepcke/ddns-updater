@@ -1,13 +1,13 @@
-# DDNS Updater
+# Extensible DDNS Updater
 
-Synchronizes the possibly changing IP address of a host myhost.mydomain.com to a remote DDNS service.
+Pushes the possibly changing IP address of a host myhost.mydomain.com to a remote dynamic domain name service (DDNS).
 
 ## Overview
-Usage: a cron job would typically be used to run
+Usage: a cron job would typically be used at regular intervals to run
 
 `sudo <proj-root>/src/lanmanagement/ddns_updater.py <ddns-service-name>`
 
-Assuming the program runs on myhost.mydomain.com, it:
+Assuming the program runs on myhost.mydomain.com, it each time:
 
 1. Detects myhost's current IP address
 2. Inquires which IP DNS services currently provide for the host
@@ -21,7 +21,7 @@ To obtain a list of supported DDNS services, add the --list (or -l) to the above
 
 ## Implementation
 
-The out-of-the-box implementation can interact with NameCheap's DDNS service. 
+The out-of-the-box implementation can interact with NameCheap's DDNS service. The files `utils.py` and `dns_service.py` provide DNS related facilities that can be useful for purposes other than dynamic DNS.
 
 ### Extending for New DDNS Services
 
@@ -47,7 +47,7 @@ The administrator creates a short subclass, such as `NameCheap` in `ddns_service
 The main class is `DDNSUpdater`. Its constructor takes a DDNS servicename, such as "namecheap". That name is provided as argument when `ddns_updater.py` is run on the command line, or in a `cron` job.
 
 <div align="center">
-  <img src="readme_architecture.png"
+  <img src="https://raw.githubusercontent.com/paepcke/ddns-updater/main/readme_architecture.png"
        alt="DDNS service update architecture"
        width="400px"
        >
