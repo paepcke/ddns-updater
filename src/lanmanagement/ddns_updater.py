@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-27 17:05:49
+# @Last Modified time: 2025-09-28 15:18:01
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -15,8 +15,6 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
-import re
-import shutil
 import subprocess, sys
 
 import requests
@@ -25,6 +23,7 @@ from requests.exceptions import RequestException, \
 								Timeout, \
 								HTTPError
 
+from lanmanagement.dns_service import DNSService
 
 src_dir = str(Path(__file__).parent.parent.resolve())
 if src_dir not in sys.path:
@@ -69,12 +68,6 @@ class DDNSUpdater:
 			DDNSUpdater.DDNS_LOG_FILE,
 			DDNSUpdater.MAX_LOGFILE_SIZE,
 			DDNSUpdater.BACKUP_COUNT)
-
-		# The OS level 'dig' program: obtains host infos
-		self.dig_binary = shutil.which('dig')
-		if self.dig_binary is None:
-			self.logger.error("Could not find needed command 'dig'")
-			sys.exit(1)
 
 		# Obtain a DDNS service adapter that will provide
 		# update URLs appropriate for the chosen service provider:
@@ -173,19 +166,8 @@ class DDNSUpdater:
 		:rtype: str
 		:raises RuntimeError if OS level 'dig' command fails
 		'''
-		dig_ns_cmd = [self.dig_binary, 'ns', domain, '+short']
-		# A successful dig command prints two DNS servers to
-		# stdout, like:
-		#    dns1.namecheaphosting.com.
-		#    dns2.namecheaphosting.com.		
-
-		dig_proc = subprocess.run(dig_ns_cmd, capture_output=True, text=True)
-		if dig_proc.returncode != 0:
-			msg = f"DDNS update script failed to identify authoritative NS: {dig_proc.stderr}"
-			raise RuntimeError(msg)
-		
-		authoritative_ns = dig_proc.stdout.partition('\n')[0]
-		return authoritative_ns
+		# Get list of nameserver strings:
+		return DNSService.get_ns_records(domain)[0]
 
 	#------------------------------------
 	# current_registered_ip
@@ -202,20 +184,12 @@ class DDNSUpdater:
 			currently registered IP cannot be obtained.
 		'''
 		# Could raise RuntimeError if fails to find server:
+		# Returns the first of potentially several nameservers:
 		dns_server = self.get_dns_server(self.domain)
-
-		dig_a_cmd = [
-			self.dig_binary, 'a', f"{self.host}.{self.domain}", 
-			f"@{dns_server}", '+short'
-		]
-		dig_proc = subprocess.run(dig_a_cmd, capture_output=True, text=True)
-		if dig_proc.returncode != 0:
-			msg = (f"DDNS update on {dns_server} for host {self.host} failed; \n"
-		  		   "could not obtain currently registered IP (A record): \n"
-				   f"{dig_proc.stderr}.")
-			raise RuntimeError(msg)
 		
-		cur_registered_ip = dig_proc.stdout.rstrip()
+		# Returns a list of (usually one) IP addresses:
+		# Could raise RuntimeError as well:
+		cur_registered_ip = DNSService.get_A_records(self.domain, dns_server)[0]
 		return cur_registered_ip
 	
 	#------------------------------------

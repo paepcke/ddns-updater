@@ -4,7 +4,7 @@
  # @Date:   2025-09-24 10:12:03
  # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/test/test_ddns_service_adapters.py
  # @Last Modified by:   Andreas Paepcke
- # @Last Modified time: 2025-09-25 09:22:34
+ # @Last Modified time: 2025-09-29 08:33:38
  #
  # **********************************************************
 #!/usr/bin/env python3
@@ -450,6 +450,15 @@ class TestNameCheap(unittest.TestCase):
 class TestRegistryMechanisms(unittest.TestCase):
     """Test the automatic registration mechanisms for DDNS service adapters"""
 
+    def setUp(self):
+        # Reset the singleton instance for clean tests
+        DDNSServiceManager._instance = None
+
+    def tearDown(self):
+        # Reset the singleton instance for clean tests
+        DDNSServiceManager._instance = None
+        
+
     def test_service_registries_populated(self):
         """Test that the service registries are properly populated"""
         # Test that NameCheap is registered
@@ -474,9 +483,12 @@ class TestRegistryMechanisms(unittest.TestCase):
 
     def test_services_list_one_entry(self):
         '''Test .ini with a single entry'''
+
         # Make a known .ini file:
         config_path = self.make_ini_file_and_secret(services=['namecheap'])
+
         service_manager = DDNSServiceManager(config_path)
+
         services = service_manager.services_list()
         self.assertListEqual(services, ['namecheap'])
 

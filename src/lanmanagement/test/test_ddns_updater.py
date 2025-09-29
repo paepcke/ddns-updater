@@ -6,7 +6,7 @@
 # @Date:   2025-09-24 10:09:58
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/test/test_ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-27 17:08:06
+# @Last Modified time: 2025-09-29 08:35:03
 #
 # **********************************************************
 
@@ -17,8 +17,6 @@ import os
 import sys
 import logging
 import configparser
-import subprocess
-from pathlib import Path
 from unittest.mock import patch, MagicMock, call, mock_open
 
 # Assuming the module is in the same directory or properly importable
@@ -70,12 +68,9 @@ class TestDDNSUpdater(unittest.TestCase):
         import shutil
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
-    @patch('lanmanagement.ddns_updater.shutil.which')
     @patch('lanmanagement.ddns_updater.DDNSServiceManager')
-    def test_init_success(self, mock_service_manager, mock_which):
+    def test_init_success(self, mock_service_manager):
         """Test successful initialization of DDNSUpdater"""
-        # Mock the required binaries
-        mock_which.side_effect = lambda x: f'/usr/bin/{x}' if x in ['dig', 'curl'] else None
         
         # Mock the service manager and adapter
         mock_manager_instance = MagicMock()
@@ -94,23 +89,6 @@ class TestDDNSUpdater(unittest.TestCase):
         self.assertTrue(updater.debug)
         self.assertEqual(updater.host, 'testhost')
         self.assertEqual(updater.domain, 'testdomain.com')
-        self.assertEqual(updater.dig_binary, '/usr/bin/dig')
-
-    @patch('lanmanagement.ddns_updater.shutil.which')
-    @patch('lanmanagement.ddns_updater.sys.exit')
-    @patch.object(DDNSUpdater, 'current_registered_ip')
-    def test_init_missing_dig_binary(
-        self, 
-        mock_current_registered_ip, 
-        mock_exit, mock_which):
-        """Test initialization when dig binary is missing"""
-        # Mock dig as missing, curl as present
-        mock_which.side_effect = lambda x: '/usr/bin/curl' if x == 'curl' else None
-        # Set the return value for the mocked method
-        mock_current_registered_ip.return_value = "192.168.1.100"        
-        DDNSUpdater('namecheap', self.config_file, debug=True)
-        
-        mock_exit.assert_called_once_with(1)
 
     def test_setup_logging(self):
         """Test setup_logging method"""
@@ -292,8 +270,15 @@ class TestDDNSUpdaterMainFunction(unittest.TestCase):
         
         mock_exists.return_value = False  # Config file doesn't exist
         mock_geteuid.return_value = 0     # Running as root
-        
-        with self.assertRaises(FileNotFoundError):
+            
+        # Configure mock to raise SystemExit when called.
+        # If we don't mock sys.exit() at all then the test
+        # truly exits. But if we leave the mock_exit patch
+        # unmodified, the that fake exit() just returns None,
+        # the the method under test continues running:
+        mock_exit.side_effect = SystemExit
+
+        with self.assertRaises(SystemExit):
             main()
         
         # Actually called three times in the main() call above
@@ -330,9 +315,17 @@ class TestDDNSUpdaterMainFunction(unittest.TestCase):
         #    ]
         # Replace the ini path with the one we created
         sys.argv[-2] = ddns_config_path 
-        main()
+
+        # Configure mock to raise SystemExit when called.
+        # If we don't mock sys.exit() at all then the test
+        # truly exits. But if we leave the mock_exit patch
+        # unmodified, the that fake exit() just returns None,
+        # the the method under test continues running:
+        mock_exit.side_effect = SystemExit
+
+        with self.assertRaises(SystemExit):
+            main()
         
-        mock_exit.assert_called_once_with(1)
         # Check that error message was printed
         print_calls = [call.args[0] for call in mock_print.call_args_list if call.args]
         sudo_error = any("must run as sudo" in msg for msg in print_calls)

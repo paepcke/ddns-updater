@@ -4,7 +4,7 @@
 # @Date:   2025-09-20 18:25:56
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/ddns_service_adapters.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-25 09:21:15
+# @Last Modified time: 2025-09-29 08:34:24
 #
 # **********************************************************
 
