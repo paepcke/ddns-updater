@@ -1,0 +1,42 @@
+[build-system]
+
+requires = ["setuptools >= 64", "cython", "wheel"]
+
+[project]
+
+name = "ddns-updater"
+description = "Update DDNS services"
+version = "0.1.0"
+readme  = "README.md"
+authors = [
+  {name = "Andreas Paepcke", email = "paepcke@cs.stanford.edu"}
+  ]
+maintainers = [
+  {name = "Andreas Paepcke", email = "paepcke@cs.stanford.edu"}
+  ]
+license = "MIT"
+
+dependencies = [
+    "requests>=2.32.5",
+    "dnspython>=2.8.0"
+    ]
+
+requires-python = ">= 3.10"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
+# The following establishes the <proj-root>/src
+# as the root of all Python packages:
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+
+Homepage = "https://github.com/paepcke/ddns-updater.git"
+Documentation = "https://github.com/paepcke/ddns-updater"
+Repository = "https://github.com/paepcke/ddns-updater"
+
+
