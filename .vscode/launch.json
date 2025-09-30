@@ -19,8 +19,8 @@
             "program": "${workspaceFolder}/src/lanmanagement/ddns_updater.py",
             "args": [
                 "--debug",
+                "--config_path", "${workspaceFolder}/src/lanmanagement/ddns.ini",
                 "namecheap",
-                "${workspaceFolder}/src/lanmanagement/ddns.ini"
             ]
         },
         {
