@@ -4,7 +4,7 @@
 # @Date:   2025-09-20 18:25:56
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/ddns_service_adapters.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-29 08:34:24
+# @Last Modified time: 2025-09-29 19:22:15
 #
 # **********************************************************
 
@@ -275,7 +275,7 @@ class DDNSServiceManager:
             with open(secret_path, 'r') as fd:
                 secret = fd.read().strip()
         except Exception as e:
-            raise FileNotFoundError(f"Could not open secrets file '{secret_path}'")
+            raise FileNotFoundError(f"Could not find/open secrets file '{secret_path}'")
         return secret
     
     #------------------------------------
