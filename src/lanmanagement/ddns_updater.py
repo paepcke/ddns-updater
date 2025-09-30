@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-28 15:18:01
+# @Last Modified time: 2025-09-29 18:39:24
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -15,7 +15,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
-import subprocess, sys
+import sys
 
 import requests
 from requests.exceptions import RequestException, \
@@ -23,12 +23,19 @@ from requests.exceptions import RequestException, \
 								Timeout, \
 								HTTPError
 
+python_root = str(Path(__file__).parent.parent)
+if python_root not in sys.path:
+	sys.path.insert(0, python_root)
+
 from lanmanagement.dns_service import DNSService
 
 src_dir = str(Path(__file__).parent.parent.resolve())
 if src_dir not in sys.path:
 	sys.path.insert(0, src_dir)
 from lanmanagement.ddns_service_adapters import DDNSServiceManager
+
+class DDNSConfigError(Exception):
+	pass
 
 class DDNSUpdater:
 
@@ -48,7 +55,12 @@ class DDNSUpdater:
 	# Constructor
 	#-------------------	
 
-	def __init__(self, service_nm: str, config_file: str, debug: bool=False):
+	def __init__(
+			self, 
+			service_nm: str, 
+			config_file: str, 
+			config_only: bool=False,
+			debug: bool=False):
 		'''
 		Prepare for IP check-and-update workflow. Service name is
 		the DDNS service company, such as 'namecheap'. The config_file
@@ -71,8 +83,15 @@ class DDNSUpdater:
 
 		# Obtain a DDNS service adapter that will provide
 		# update URLs appropriate for the chosen service provider:
-		ddns_srv_manager = DDNSServiceManager(config_file)
-		self.service_adapter = ddns_srv_manager.get_service_adapter(service_nm)
+		self.ddns_srv_manager = DDNSServiceManager(config_file)
+		# If all we wanted was to read the config
+		# file so the caller could get info about it,
+		# then we are done:
+		if config_only:
+			return
+		
+		# Get service adapter for the specific service:
+		self.service_adapter = self.ddns_srv_manager.get_service_adapter(service_nm)
 		
     	# Get config Section structure, which acts like:
 		#      {"host": "myhost",
@@ -91,7 +110,12 @@ class DDNSUpdater:
 			self.logger.error(f"Init file at {config_file} has no entry for 'domain'")
 			sys.exit(1)
 
-		self.report_own_ip()		
+		try:
+			self.report_own_ip()
+		except DDNSConfigError as e:
+			msg = f"Configuration error ({config_file}): {e}"
+			self.logger.error(msg)
+			print(msg)
 
 	#------------------------------------
 	# report_own_ip
@@ -115,7 +139,13 @@ class DDNSUpdater:
 		
 		self.logger.info(f"IP changed from {cur_registered_ip} to {cur_own_ip}")
 
-		update_url = self.service_adapter.ddns_update_url(cur_own_ip)
+		try:
+			update_url = self.service_adapter.ddns_update_url(cur_own_ip)
+		except Exception as e:
+			# Raise a config error, so that caller
+			# can give advice:
+			raise DDNSConfigError(str(e)) from e
+
 		if self.debug:
 			# Bypass the actual updating, which would required sudo
 			self.logger.info("Bypassing DDNS service update because --debug")
@@ -148,7 +178,7 @@ class DDNSUpdater:
 		# A classmethod on DDNSServiceManager provides
 		# the list
 
-		service_names = self.service_adapter.services_list()
+		service_names = self.ddns_srv_manager.services_list()
 		return service_names
 
 	#------------------------------------
@@ -356,10 +386,14 @@ class DDNSUpdater:
 	
 # ----------------------- Main Function (top level) --------------
 def main():
+
+	desc = ("Regularly update DDNS service with new IP, if needed.\n"
+		 	"Unless just --help, --list, or --info, must run as sudo")
+
 	default_init_path = str(Path(__file__).parent.joinpath('ddns.ini'))
 	parser = argparse.ArgumentParser(prog=os.path.basename(sys.argv[0]),
                                      formatter_class=argparse.RawTextHelpFormatter,
-                                     description="Regularly update DDNS service with new IP, if needed"
+                                     description=desc
                                      )
 
 	parser.add_argument('-d', '--debug',
@@ -369,17 +403,52 @@ def main():
     )
 	parser.add_argument('-l', '--list',
 						action='store_true',
-                        help="print list of DDNS service names",
+                        help="print names of available DDNS services; then exit",
+						default=False
+    )
+	parser.add_argument('-i', '--info',
+						action='store_true',
+                        help="print config info, then exit",
 						default=False
     )
 	parser.add_argument('-c', '--config_path',
 						default=default_init_path,
-                        help=f"Path to the .ini DDNS service(s) config file; default: {default_init_path}"
+                        help=(f"Path to the .ini DDNS service(s) config file;\n" 
+							  f"default: {default_init_path}")
     )
+	# The service name is required *unless** --list or --info
+	# We enforce that after parser.parse_args():
 	parser.add_argument('service_nm',
-                        help="Name of DDNS service to keep updated, such as 'namecheap'"
+					 	nargs='?',
+						default=None,
+                        help=("Name of DDNS service to keep updated, such as 'namecheap'\n"
+							  "Required, unless --help, --list or --info")
     )
 	args = parser.parse_args()
+
+	# Required service_nm unless --list or --info:
+	if args.service_nm is None:
+		if not (args.list or args.info):
+			print("The DDNS service name is required without either --list or --info")
+			sys.exit(1)
+
+	# Does caller only want info on where config
+	# and log info are?
+	if args.info:
+		print(f"Config file: {args.config_path}")
+		print(f"Log files. : {DDNSUpdater.DDNS_LOG_FILE}")
+		msg = (f"Default secrets path (can change in config file): " 
+		 	   f"{DDNSUpdater.DDNS_PASSWORD_FILE}")
+		print(msg)
+		sys.exit(0)
+
+	if args.list:
+		# Init updater, but do not report new IP
+		updater = DDNSUpdater(None, args.config_path, config_only=True)
+		for service_nm in updater.services_list():
+			print(service_nm)
+		sys.exit(0)
+
     # Provide all problems in one run:
 	errors = []
     # Config file exists?
@@ -399,7 +468,6 @@ def main():
 	if args.list:
 		for service_nm in updater.services_list():
 			print(service_nm)
-
 
 # ------------------------ Main ------------
 if __name__ == '__main__':
