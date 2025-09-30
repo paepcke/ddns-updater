@@ -5,7 +5,7 @@ Pushes the possibly changing IP address of a host myhost.mydomain.com to a remot
 ## Overview
 Usage: a cron job would typically be used at regular intervals to run
 
-`sudo <proj-root>/src/lanmanagement/ddns_updater.py <ddns-service-name>`
+`sudo /path/to/ddns-updater <ddns-service-name>`
 
 Assuming the program runs on myhost.mydomain.com, it each time:
 
@@ -17,11 +17,69 @@ A rotating log is maintained at
 
 `<proj-root>/src/lanmanagement/logs/ddns.log<n>`
 
-To obtain a list of supported DDNS services, add the --list (or -l) to the above call.
+## Installation
+
+Install the package (recommended into a virtual env, like conda):
+
+`pip install ddns-updater-ext`
+
+the program will now be available as `ddns-updater`. Out of the box, NameCheap's DDNS service is supported. See [Extending for New DDNS Services ](#extending-for-new-ddns-services) for how to add others.
+
+DDNS services require some kind of secret, such as a password, or API key. You should place that information for your service in a place like:
+
+`$HOME/.ssh/ddns_password`
+
+where `.ssh` is accessible only for your user (`chmod 700 $HOME/.ssh`). You tell ddns-updater where that secrets file resides in a configuration file `ddns.ini`. You find this configuration file by running
+
+`ddns-updater --info`
+
+This command tells you the location of the default config file, as well as the default location of the secrets file. You can copy that default config file, or change it in place. If you copy it, you then always tell ddns-updater about the new location:
+
+`ddns-updater --config_path path/to/your/ddns.ini <service name>`
+
+Copying that config file, and changing the copy is recommended so that your changes are not overwritten if you update the ddns-updater-ext package.
+
+## Usages
+
+You can immediatly try three commands:
+
+```
+ddns-updater --help
+ddns-updater --list   # available (implemented) DDNS services; extensible.
+                      # See [Extending for New DDNS Services ](#extending-for-new-ddns-services)
+ddns-updater --info   # Location of future logs, the config file, and the secrets file
+```
+
+To run in a terminal: since the active-ingredient command needs to run as `sudo` you need to provide the sudo environment with the full location of `ddns-updater`. This is required because your path is not passed into the sudo environment. You can provide the full path in several ways, either by explicitly typing out the full path, or via:
+
+`sudo `which ddns-updater` namecheap`
+
+Unless an error, such as a misconfiguration occurs, the ddns-updater command runs silently. But you can always check what happened by inspecting the logs (location via `ddns-updater --info`).
+
+You will eventually have the updater run periodically on its own. One method is a `cron` job.
+
+```
+# Open an editor with the current root crontab:
+sudo crontab -e
+# Add a line like this:
+0 * * * * /path/to/ddns-updater --config_path /to/ddns.ini namecheap
+# Save the file, and check that your change worked:
+crontab -l
+```
+For details, see [crontab(5)](https://man7.org/linux/man-pages/man5/crontab.5.html).
 
 ## Implementation
 
 The out-of-the-box implementation can interact with NameCheap's DDNS service. The files `utils.py` and `dns_service.py` provide DNS related facilities that can be useful for purposes other than dynamic DNS.
+
+To inspect the code, clone [ddns-updater](https://github.com/paepcke/ddns-updater) into proj-root. Then:
+
+```
+cd <proj-root>
+pip install .
+# You can run the unittests via:
+pytest
+```
 
 ### Extending for New DDNS Services
 
