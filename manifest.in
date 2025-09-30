@@ -1,2 +1,3 @@
 prune src/lanmanagement/test
 prune src/lanmanagement/logs
+include src/lanmanagement/ddns.ini
