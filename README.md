@@ -15,7 +15,7 @@ Assuming the program runs on myhost.mydomain.com, it each time:
 
 A rotating log is maintained at
 
-`<proj-root>/src/lanmanagement/logs/ddns.log<n>`
+`<package-root>/lanmanagement/logs/ddns.log<n>`
 
 ## Installation
 
@@ -45,9 +45,9 @@ You can immediatly try three commands:
 
 ```
 ddns-updater --help
-ddns-updater --list   # available (implemented) DDNS services; extensible.
-                      # See [Extending for New DDNS Services ](#extending-for-new-ddns-services)
-ddns-updater --info   # Location of future logs, the config file, and the secrets file
+ddns-updater --list   # Implemented DDNS services; extensible.
+ddns-updater --info   # Location of future logs, the config file,
+                      # and the secrets file
 ```
 
 To run in a terminal: since the active-ingredient command needs to run as `sudo` you need to provide the sudo environment with the full location of `ddns-updater`. This is required because your path is not passed into the sudo environment. You can provide the full path in several ways, either by explicitly typing out the full path, or via:
