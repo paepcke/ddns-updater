@@ -70,7 +70,7 @@ For details, see [crontab(5)](https://man7.org/linux/man-pages/man5/crontab.5.ht
 
 ## Implementation
 
-The out-of-the-box implementation can interact with NameCheap's DDNS service. The files `utils.py` and `dns_service.py` provide DNS related facilities that can be useful for purposes other than dynamic DNS.
+After configuration, the out-of-the-box implementation can interact with NameCheap's DDNS service. The files `utils.py` and `dns_service.py` provide DNS related facilities that can be useful for purposes other than dynamic DNS.
 
 To inspect the code, clone [ddns-updater](https://github.com/paepcke/ddns-updater) into proj-root. Then:
 
@@ -83,7 +83,7 @@ pytest
 
 ### Extending for New DDNS Services
 
-Administrators can extend the implementation to interact with additional DDNS services. The core of these service interactions is to generate a proper URL that instructs the service to update its IP address for `myhost.mydomain.com/.net.io,...` For each supported service the query parameters are stored as a section of options in a Python `configparser` `.ini` file. Like this:
+Administrators can extend the implementation to interact with additional DDNS services. The core of these service interactions is to generate a proper URL that instructs the service to update its IP address for `myhost.mydomain.com/.net.io,...` For each supported service the query parameters are stored as a section of options in a Python `configparser` `ddns.ini` file. Like this:
 
 ```ini
 [namecheap]
