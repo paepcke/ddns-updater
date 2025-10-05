@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-29 18:39:24
+# @Last Modified time: 2025-09-30 08:34:41
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -358,18 +358,39 @@ class DDNSUpdater:
 		'''
 
 		# Ensure that the logfile directory 
-		# exists; but OK if already does:
-		Path.mkdir(Path(file_path).parent, exist_ok=True)
+		# exists; but OK if already does.
+		# However: we often run as sudo, but want
+		# the log file to have the same ownership
+		# and group as this Python file, not be
+		# root:
+		this_file = Path(__file__)
+		stats = this_file.stat()
+		owner_uid = stats.st_uid
+		owner_gid = stats.st_gid
 
+		# Create logs directory
+		log_dir = Path(file_path).parent
+		log_dir.mkdir(mode=0o755, exist_ok=True)
+		os.chown(log_dir, owner_uid, owner_gid)
+
+		# Pre-create the log file with proper ownership and permissions
+		# This ensures RotatingFileHandler doesn't create it as root
+		log_file = Path(file_path)
+		if not log_file.exists():
+			log_file.touch()
+			os.chown(log_file, owner_uid, owner_gid)
+			log_file.chmod(0o644)
+		
 	    # Create a logger
 		logger = logging.getLogger(__name__)
 		logger.setLevel(logging.INFO)
 
-		# Create a RotatingFileHandler
-		handler = RotatingFileHandler(
+	    # Use custom handler that preserves ownership
+		handler = OwnershipPreservingRotatingFileHandler(
 			file_path,
-			max_file_sz,
-			num_files
+			maxBytes=max_file_sz,
+			backupCount=num_files,
+			reference_file=this_file
 		)
 
 		# Create a formatter; generates entries like:
@@ -384,6 +405,70 @@ class DDNSUpdater:
 
 		return logger
 	
+# ----------------------- Class OwnershipPreservingRotatingFileHandler --------------
+
+class OwnershipPreservingRotatingFileHandler(RotatingFileHandler):
+	'''
+	Subclass of the RotatingFileHandler does the same
+	rotation of log files when they get large as the 
+	parent. But even when run as root when a rotation occurs,
+	any newly created log files will be owner/group the
+	same as this Python file, i.e. not root.
+	Purpose: even if one occasionally runs as regular user,
+	e.g. with the --info or --list option, no root-only errors
+	will occur.
+	'''
+
+	def __init__(self, filename, mode='a', maxBytes=0, backupCount=0, 
+					encoding=None, delay=False, reference_file=None):
+		'''
+		Same args and action as parent class, but additional 
+		optional arg 'reference_file'. If provided, the new
+		log file's owner and group will be those of the 
+		reference file. Else the same ownership and group as
+		this Python file's are used
+
+		:param filename: new log's name
+		:type filename: str
+		:param mode: access mode, defaults to 'a'
+		:type mode: str, optional
+		:param maxBytes: maximum size, defaults to 0
+		:type maxBytes: int, optional
+		:param backupCount: number of log files in addition to current, defaults to 0
+		:type backupCount: int, optional
+		:param encoding: file encoding, defaults to None
+		:type encoding: _type_, optional
+		:param delay: if True, defers file opening till first write, defaults to False
+		:type delay: bool, optional
+		:param reference_file: model file for ownership and group, defaults to None
+		:type reference_file: str, optional
+		'''
+		self.reference_file = Path(reference_file) if reference_file else Path(__file__)
+		super().__init__(filename, mode, maxBytes, backupCount, encoding, delay)
+
+	def doRollover(self):
+		"""Override to fix ownership after rotation"""
+		super().doRollover()
+		
+		# Get reference ownership 
+		# (self.reference_file is a Path)
+		stats = self.reference_file.stat()
+		owner_uid = stats.st_uid
+		owner_gid = stats.st_gid
+		
+		# Fix ownership of all rotated files
+		base_filename = Path(self.baseFilename)
+		for i in range(1, self.backupCount + 1):
+			rotated_file = Path(f"{self.baseFilename}.{i}")
+			if rotated_file.exists():
+				os.chown(rotated_file, owner_uid, owner_gid)
+				rotated_file.chmod(0o644)
+		
+		# Fix ownership of current log file
+		if base_filename.exists():
+			os.chown(base_filename, owner_uid, owner_gid)
+			base_filename.chmod(0o644)
+
 # ----------------------- Main Function (top level) --------------
 def main():
 
@@ -464,10 +549,10 @@ def main():
 			print(f"   {err_msg}")
 		sys.exit(1)
 
-	updater = DDNSUpdater(args.service_nm, args.config_path, debug=args.debug)
-	if args.list:
-		for service_nm in updater.services_list():
-			print(service_nm)
+	try:
+		updater = DDNSUpdater(args.service_nm, args.config_path, debug=args.debug)
+	except NotImplementedError as e:
+		print(f"{e}. (run ddns-updater --list to see supported services)")
 
 # ------------------------ Main ------------
 if __name__ == '__main__':
