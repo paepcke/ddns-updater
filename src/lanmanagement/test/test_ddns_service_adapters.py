@@ -4,7 +4,7 @@
  # @Date:   2025-09-24 10:12:03
  # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/lanmanagement/test/test_ddns_service_adapters.py
  # @Last Modified by:   Andreas Paepcke
- # @Last Modified time: 2025-09-29 08:33:38
+ # @Last Modified time: 2025-10-05 11:51:08
  #
  # **********************************************************
 #!/usr/bin/env python3
@@ -210,7 +210,7 @@ class TestDDNSServiceManager(unittest.TestCase):
         with self.assertRaises(FileNotFoundError) as context:
             manager._retrieve_secret('bad_secrets')
         
-        self.assertIn("Could not open secrets file", str(context.exception))
+        self.assertIn("Could not find/open secrets file", str(context.exception))
 
     def test_expand_path_with_tilde(self):
         """Test expand_path with tilde expansion"""
