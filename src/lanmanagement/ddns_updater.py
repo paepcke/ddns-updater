@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-10-05 18:08:00
+# @Last Modified time: 2025-10-06 12:36:24
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -229,7 +229,14 @@ class DDNSUpdater:
 		
 		# Returns a list of (usually one) IP addresses:
 		# Could raise RuntimeError as well:
-		cur_registered_ip = DNSService.get_A_records(self.domain, dns_server)[0]
+		# construct hostname.domain. If we were just to pass the
+		# domain, we would get the IP of the domain record, not of
+		# the host address itself:
+		if len(self.host) > 0:
+			target_record = f"{self.host}.{self.domain}"
+		else:
+			target_record = self.domain
+		cur_registered_ip = DNSService.get_A_records(target_record, dns_server)[0]
 		return cur_registered_ip
 	
 	#------------------------------------
