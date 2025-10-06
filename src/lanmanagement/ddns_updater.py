@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-10-06 12:36:24
+# @Last Modified time: 2025-10-06 12:46:28
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -23,6 +23,8 @@ from requests.exceptions import RequestException, \
 								ConnectionError, \
 								Timeout, \
 								HTTPError
+
+from lanmanagement.utils import Utils
 
 python_root = str(Path(__file__).parent.parent)
 if python_root not in sys.path:
