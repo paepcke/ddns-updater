@@ -6,7 +6,7 @@ requires = ["setuptools >= 64", "cython", "wheel"]
 
 name = "ddns-updater-ext"
 description = "Update DDNS services; extensible"
-version = "1.0.4"
+version = "1.0.5"
 readme  = "README.md"
 authors = [
   {name = "Andreas Paepcke", email = "paepcke@cs.stanford.edu"}

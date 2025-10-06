@@ -5,7 +5,7 @@
 # @Date:   2025-09-19 15:03:46
 # @File:   /Users/paepcke/VSCodeWorkspaces/ddns-updater/src/ddns_updater.py
 # @Last Modified by:   Andreas Paepcke
-# @Last Modified time: 2025-09-30 08:34:41
+# @Last Modified time: 2025-10-05 18:08:00
 # @ modified by Andreas Paepcke
 #
 # **********************************************************
@@ -16,6 +16,7 @@ from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
 import sys
+from typing import Optional
 
 import requests
 from requests.exceptions import RequestException, \
@@ -121,7 +122,7 @@ class DDNSUpdater:
 	# report_own_ip
 	#-------------------
 
-	def report_own_ip(self):
+	def report_own_ip(self, own_ip: Optional[str] =None):
 		'''
 		Obtains this host's current IP, and compares it with 
 		the DDNS service's IP for this host. If the two IPs
@@ -129,9 +130,18 @@ class DDNSUpdater:
 		IP.
 
 		Logs the activity.
-		'''
 
-		cur_own_ip = self.cur_own_ip()
+		@param own_ip: if provided, DDNS service will be updated
+			with that IP. else the current WAN IP is reported to
+			the DDNS service
+		@type own_ip: str | None
+		@raises TypeError if own_ip is provided, but is not a 
+		    syntactically valid IP
+		'''
+		if own_ip is not None and not Utils.is_valid_ip(own_ip):
+			raise TypeError(f"Argument own_ip is not a valid IP: {own_ip}")
+		
+		cur_own_ip = self.cur_own_ip() if own_ip is None else own_ip
 		cur_registered_ip = self.current_registered_ip()
 		if cur_own_ip == cur_registered_ip:
 			# Nothing to report
